@@ -1,0 +1,65 @@
+{
+  "MaxMale": 9,
+  "MaxFemale": 9,
+  "MaleParticipants": [
+    "阿平",
+    "阿儒",
+    "麵包",
+    "偉豪",
+    "阿俊",
+    "Domi",
+    "小剛",
+    "阿俊",
+    "阿俊",
+    "阿俊"
+  ],
+  "FemaleParticipants": [
+    "阿俊",
+    "阿俊",
+    "阿俊"
+  ],
+  "MaleWaitingList": [],
+  "FemaleWaitingList": [],
+  "MaleQuarterly": [
+    "阿平",
+    "阿苑",
+    "柏成",
+    "老王",
+    "阿儒",
+    "榮叔",
+    "麵包",
+    "偉豪"
+  ],
+  "FemaleQuarterly": [
+    "雅萱",
+    "紫寧",
+    "詩穎",
+    "索爾",
+    "小嘉",
+    "梅乾"
+  ],
+  "WhiteList": {
+    "U4ae0a4b6b86b73455ca52ccab9ebc652": "阿俊"
+  },
+  "QuarterlyFee": 200,
+  "AcFee": 30,
+  "AcRecords": {
+    "20260213": false
+  },
+  "ClosedDates": {},
+  "ResetDay": 6,
+  "ResetHour": 1,
+  "ResetMinute": 0,
+  "MatchDay": 5,
+  "MatchHour": 19,
+  "MatchMinute": 0,
+  "DeadlineDay": null,
+  "CancelDeadlineDay": 0,
+  "DeadlineHour": 0,
+  "DeadlineMinute": 0,
+  "CancelDeadlineHour": 12,
+  "CancelDeadlineMinute": 0,
+  "SeasonStart": "20260101",
+  "SeasonEnd": "20260331",
+  "SetupStep": 0
+}

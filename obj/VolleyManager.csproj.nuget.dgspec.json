@@ -1,0 +1,76 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/theojian/VolleyManager/VolleyManager.csproj": {}
+  },
+  "projects": {
+    "/Users/theojian/VolleyManager/VolleyManager.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/theojian/VolleyManager/VolleyManager.csproj",
+        "projectName": "VolleyManager",
+        "projectPath": "/Users/theojian/VolleyManager/VolleyManager.csproj",
+        "packagesPath": "/Users/theojian/.nuget/packages/",
+        "outputPath": "/Users/theojian/VolleyManager/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/theojian/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Line.Messaging": {
+              "target": "Package",
+              "version": "[1.4.5, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.304/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

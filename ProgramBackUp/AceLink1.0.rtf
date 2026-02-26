@@ -1,0 +1,851 @@
+{\rtf1\ansi\ansicpg950\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fnil\fcharset0 Menlo-Italic;}
+{\colortbl;\red255\green255\blue255;\red114\green201\blue195;\red19\green19\blue19;\red221\green221\blue221;
+\red193\green193\blue193;\red205\green204\blue213;\red118\green180\blue255;\red233\green160\blue109;\red153\green196\blue105;
+\red218\green124\blue212;\red153\green138\blue248;\red229\green189\blue123;\red245\green188\blue80;}
+{\*\expandedcolortbl;;\cssrgb\c50980\c82353\c80784;\cssrgb\c9412\c9412\c9412;\cssrgb\c89412\c89412\c89412;
+\cssrgb\c80000\c80000\c80000;\cssrgb\c83922\c83922\c86667;\cssrgb\c52941\c76471\c100000;\cssrgb\c93725\c69020\c50196;\cssrgb\c65882\c80000\c48627;
+\cssrgb\c89020\c58039\c86275;\cssrgb\c66667\c62745\c98039;\cssrgb\c92157\c78431\c55294;\cssrgb\c97255\c78039\c38431;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs24 \cf2 \cb3 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 using\cf4 \strokec4  \cf5 \strokec5 Line\cf6 \strokec6 .\cf5 \strokec5 Messaging\cf4 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 using\cf4 \strokec4  \cf5 \strokec5 Newtonsoft\cf6 \strokec6 .\cf5 \strokec5 Json\cf4 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 using\cf4 \strokec4  \cf5 \strokec5 System\cf6 \strokec6 .\cf5 \strokec5 Text\cf4 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 using\cf4 \strokec4  \cf5 \strokec5 System\cf6 \strokec6 .\cf5 \strokec5 Security\cf6 \strokec6 .\cf5 \strokec5 Cryptography\cf4 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 using\cf4 \strokec4  \cf5 \strokec5 System\cf6 \strokec6 .\cf5 \strokec5 Linq\cf4 \strokec4 ; \cb1 \
+\cf2 \cb3 \strokec2 using\cf4 \strokec4  \cf5 \strokec5 System\cf6 \strokec6 .\cf5 \strokec5 Text\cf6 \strokec6 .\cf5 \strokec5 RegularExpressions\cf4 \strokec4 ; \cb1 \
+\
+\cf2 \cb3 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 builder\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 WebApplication\cf6 \strokec6 .\cf8 \strokec8 CreateBuilder\cf4 \strokec4 (\cf2 \strokec2 args\cf4 \strokec4 );\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf9 \cb3 \strokec9 #region\cf4 \strokec4  \cf10 \strokec10 --- 1. \uc0\u26680 \u24515 \u26381 \u21209 \u37197 \u32622  ---\cf4 \cb1 \strokec4 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 accessToken\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf10 \strokec10 "boROWeqxC8q0KBHZDuZcqqb3/JjyIMvNMLB1s+O+/IM1XhikY4Vms0PiHhnaDsUwvDr1s/TlrNLfcEH6YBeqXcy9FwIVmG24AcRmXExCCUdLNHAR7u74NymPtNhYLiOxmNZo7ikRppaiiym2OMCkaQdB04t89/1O/w1cDnyilFU="\cf4 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 channelSecret\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf10 \strokec10 "ddd264aa156037c7b045257f3c23381d"\cf4 \strokec4 ;\cb1 \
+\
+\cf2 \cb3 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 botData\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 VolleyData\cf6 \strokec6 .\cf8 \strokec8 Load\cf4 \strokec4 ();\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf7 \cb3 \strokec7 builder\cf6 \strokec6 .\cf11 \strokec11 Services\cf6 \strokec6 .\cf8 \strokec8 AddSingleton\cf4 \strokec4 (\cf7 \strokec7 botData\cf4 \strokec4 );\cb1 \
+\cf7 \cb3 \strokec7 builder\cf6 \strokec6 .\cf11 \strokec11 Services\cf6 \strokec6 .\cf8 \strokec8 AddSingleton\cf4 \strokec4 <\cf8 \strokec8 ILineMessagingClient\cf4 \strokec4 >(
+\f1\i \cf6 \strokec6 _
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 =>\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 LineMessagingClient\cf4 \strokec4 (\cf7 \strokec7 accessToken\cf4 \strokec4 ));\cb1 \
+\cf7 \cb3 \strokec7 builder\cf6 \strokec6 .\cf11 \strokec11 Services\cf6 \strokec6 .\cf8 \strokec8 AddHostedService\cf4 \strokec4 <\cf7 \strokec7 ResetTaskService\cf4 \strokec4 >();\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 app\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 builder\cf6 \strokec6 .\cf8 \strokec8 Build\cf4 \strokec4 ();\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf9 \cb3 \strokec9 #endregion\cf4 \cb1 \strokec4 \
+\
+\cf9 \cb3 \strokec9 #region\cf4 \strokec4  \cf10 \strokec10 --- 2. Webhook \uc0\u34389 \u29702 \u37007 \u36655  ---\cf4 \cb1 \strokec4 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7 \cb3 \strokec7 app\cf6 \strokec6 .\cf8 \strokec8 MapPost\cf4 \strokec4 (\cf10 \strokec10 "/api/linebot"\cf4 \strokec4 , \cf2 \strokec2 async\cf4 \strokec4  (\cf7 \strokec7 HttpContext\cf4 \strokec4  
+\f1\i \cf6 \strokec6 context
+\f0\i0 \cf4 \strokec4 , \cf8 \strokec8 ILineMessagingClient\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 \cf4 \strokec4 , \cf7 \strokec7 VolleyData\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 \cf4 \strokec4 ) \cf6 \strokec6 =>\cf4 \cb1 \strokec4 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3 \{\cb1 \
+\cb3     
+\f1\i \cf6 \strokec6 context
+\f0\i0 .\cf11 \strokec11 Request\cf6 \strokec6 .\cf11 \strokec11 Headers\cf6 \strokec6 .\cf8 \strokec8 TryGetValue\cf4 \strokec4 (\cf10 \strokec10 "X-Line-Signature"\cf4 \strokec4 , \cf2 \strokec2 out\cf4 \strokec4  \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 signatureHeader\cf4 \strokec4 );\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3     // \uc0\u9989  \u20462 \u27491 \u35486 \u27861 \u37679 \u35492 \u65306 \u34389 \u29702  signatureHeader \u29554 \u21462 \u26041 \u24335 
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3     \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 signature\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 signatureHeader\cf6 \strokec6 .\cf8 \strokec8 ToString\cf4 \strokec4 () \cf6 \strokec6 ??\cf4 \strokec4  \cf2 \strokec2 string\cf6 \strokec6 .\cf11 \strokec11 Empty\cf4 \strokec4 ;\cb1 \
+\
+\cb3     \cf2 \strokec2 using\cf4 \strokec4  \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 reader\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 StreamReader\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 context
+\f0\i0 .\cf11 \strokec11 Request\cf6 \strokec6 .\cf11 \strokec11 Body\cf4 \strokec4 , \cf7 \strokec7 Encoding\cf6 \strokec6 .\cf11 \strokec11 UTF8\cf4 \strokec4 );\cb1 \
+\cb3     \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 body\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 await\cf4 \strokec4  \cf7 \strokec7 reader\cf6 \strokec6 .\cf8 \strokec8 ReadToEndAsync\cf4 \strokec4 ();\cb1 \
+\
+\cb3     \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 key\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 Encoding\cf6 \strokec6 .\cf11 \strokec11 UTF8\cf6 \strokec6 .\cf8 \strokec8 GetBytes\cf4 \strokec4 (\cf7 \strokec7 channelSecret\cf4 \strokec4 );\cb1 \
+\cb3     \cf2 \strokec2 using\cf4 \strokec4  (\cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 hmac\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 HMACSHA256\cf4 \strokec4 (\cf7 \strokec7 key\cf4 \strokec4 ))\cb1 \
+\cb3     \{\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 hash\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 hmac\cf6 \strokec6 .\cf8 \strokec8 ComputeHash\cf4 \strokec4 (\cf7 \strokec7 Encoding\cf6 \strokec6 .\cf11 \strokec11 UTF8\cf6 \strokec6 .\cf8 \strokec8 GetBytes\cf4 \strokec4 (\cf7 \strokec7 body\cf4 \strokec4 ));\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3         // \uc0\u9989  \u20462 \u27491 \u35486 \u27861 \u37679 \u35492 \u65306 Convert.ToBase64String (\u22823 \u23531  S)
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 Convert\cf6 \strokec6 .\cf8 \strokec8 ToBase64String\cf4 \strokec4 (\cf7 \strokec7 hash\cf4 \strokec4 ) \cf6 \strokec6 !=\cf4 \strokec4  \cf7 \strokec7 signature\cf4 \strokec4 ) \cf2 \strokec2 return\cf4 \strokec4  \cf7 \strokec7 Results\cf6 \strokec6 .\cf8 \strokec8 Unauthorized\cf4 \strokec4 ();\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 try\cf4 \cb1 \strokec4 \
+\cb3     \{\cb1 \
+\cb3         \cf2 \strokec2 dynamic\cf6 \strokec6 ?\cf4 \strokec4  \cf7 \strokec7 json\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 JsonConvert\cf6 \strokec6 .\cf8 \strokec8 DeserializeObject\cf4 \strokec4 (\cf7 \strokec7 body\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 json\cf6 \strokec6 ?.\cf7 \strokec7 events\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf2 \strokec2 null\cf4 \strokec4 ) \cf2 \strokec2 return\cf4 \strokec4  \cf7 \strokec7 Results\cf6 \strokec6 .\cf8 \strokec8 Ok\cf4 \strokec4 ();\cb1 \
+\
+\cb3         \cf2 \strokec2 foreach\cf4 \strokec4  (\cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 ev\cf4 \strokec4  \cf2 \strokec2 in\cf4 \strokec4  \cf7 \strokec7 json\cf6 \strokec6 .\cf7 \strokec7 events\cf4 \strokec4 )\cb1 \
+\cb3         \{\cb1 \
+\cb3             \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 replyToken\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 ev\cf6 \strokec6 .\cf7 \strokec7 replyToken\cf4 \strokec4 ;\cb1 \
+\cb3             \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 userMessage\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (\cf7 \strokec7 ev\cf6 \strokec6 .\cf7 \strokec7 message\cf6 \strokec6 ?.\cf7 \strokec7 text\cf4 \strokec4  \cf6 \strokec6 ??\cf4 \strokec4  \cf10 \strokec10 ""\cf4 \strokec4 )\cf6 \strokec6 .\cf7 \strokec7 ToString\cf4 \strokec4 ()\cf6 \strokec6 .\cf7 \strokec7 Trim\cf4 \strokec4 ();\cb1 \
+\cb3             \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 userId\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 ev\cf6 \strokec6 .\cf7 \strokec7 source\cf6 \strokec6 ?.\cf7 \strokec7 userId\cf4 \strokec4  \cf6 \strokec6 ??\cf4 \strokec4  \cf10 \strokec10 ""\cf4 \strokec4 ;\cb1 \
+\cb3             \cf2 \strokec2 bool\cf4 \strokec4  \cf7 \strokec7 isAdmin\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (\cf7 \strokec7 userId\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "U4ae0a4b6b86b73455ca52ccab9ebc652"\cf4 \strokec4 );\cb1 \
+\
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf2 \strokec2 string\cf6 \strokec6 .\cf8 \strokec8 IsNullOrEmpty\cf4 \strokec4 (\cf7 \strokec7 userMessage\cf4 \strokec4 )) \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3             // --- \uc0\u26597 \u35426  LINE ID ---
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 userMessage\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u25105 \u30340 ID"\cf4 \strokec4 )\cb1 \
+\cb3             \{\cb1 \
+\cb3                 \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 status\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf8 \strokec8 ContainsKey\cf4 \strokec4 (\cf7 \strokec7 userId\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf10 \strokec10 $"\uc0\u24050 \u32129 \u23450 \u65306 \{
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf10 \strokec10 [\cf7 \strokec7 userId\cf10 \strokec10 ]\}"\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf10 \strokec10 "\uc0\u23578 \u26410 \u32129 \u23450 "\cf4 \strokec4 ;\cb1 \
+\cb3                 \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u24744 \u30340  LINE ID\u65306 \cf6 \strokec6 \\n\cf10 \strokec10 \{\cf7 \strokec7 userId\cf10 \strokec10 \}\cf6 \strokec6 \\n\\n\cf10 \strokec10 \uc0\u30446 \u21069 \u29376 \u24907 \u65306 \{\cf7 \strokec7 status\cf10 \strokec10 \}"\cf4 \strokec4 );\cb1 \
+\cb3                 \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3             \}\cb1 \
+\
+\cb3             \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 userMessage\cf6 \strokec6 .\cf8 \strokec8 Split\cf4 \strokec4 (\cf10 \strokec10 '\cf6 \strokec6 \\n\cf10 \strokec10 '\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 Select\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 l
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 =>\cf4 \strokec4  
+\f1\i \cf6 \strokec6 l
+\f0\i0 .\cf8 \strokec8 Trim\cf4 \strokec4 ())\cf6 \strokec6 .\cf8 \strokec8 ToList\cf4 \strokec4 ();\cb1 \
+\cb3             \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 0\cf4 \strokec4 ];\cb1 \
+\
+\cb3             \cf9 \strokec9 #region\cf4 \strokec4  \cf10 \strokec10 --- \uc0\u31649 \u29702 \u21729 \u25351 \u20196 \u21312  ---\cf4 \cb1 \strokec4 \
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 isAdmin\cf4 \strokec4 )\cb1 \
+\cb3             \{\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // \uc0\u9989  \u22196 \u26684 \u36981 \u23432 \u24744 \u25351 \u23450 \u30340 \u35498 \u26126 \u26360 \u26684 \u24335 
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u31649 \u29702 \u21729 \u25351 \u20196 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 helpMsg\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf10 \strokec10 @"\uc0\u55356 \u57296  \u25490 \u29699 \u22577 \u21517 \u27231 \u22120 \u20154 \u25351 \u20196 \u35498 \u26126 \u26360  \u55356 \u57296 \cf4 \cb1 \strokec4 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf10 \cb3 \strokec10 \uc0\u26412 \u31995 \u32113 \u25552 \u20379 \u33258 \u21205 \u21270 \u22577 \u21517 \u33287 \u21517 \u21934 \u31649 \u29702 \u65292 \u35531 \u21443 \u32771 \u20197 \u19979 \u25351 \u20196 \u65306 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u12304  \u19968 \u33324 \u25104 \u21729 \u25351 \u20196  \u12305  \u30452 \u25509 \u22312 \u23565 \u35441 \u26694 \u36664 \u20837 \u21363 \u21487 \u65306 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 +1\uc0\u30007 /\u22899        \u65306 \u22577 \u21517 \u19968 \u20301 \u30007 /\u22899        \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 +2\uc0\u30007 /\u22899       \u65306 \u22577 \u21517 \u20841 \u20301 \u30007 /\u22899  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 -1\uc0\u30007 /\u22899        \u65306 \u21462 \u28040 \u19968 \u20301 \u22577 \u21517 \u30007 /\u22899 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 -2\uc0\u30007 /\u22899       \u65306 \u21462 \u28040 \u20841 \u20301 \u22577 \u21517 \u30007 /\u22899  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u26597 \u35426     \u65306 \u26597 \u30475 \u30446 \u21069 \u27491 \u36984 \u33287 \u20505 \u35036 \u21517 \u21934  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u25105 \u30340 ID \u65306 \u26597 \u35426 \u24744 \u30340  LINE \u35672 \u21029 \u30908  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u24171 \u21161     \u65306 \u39023 \u31034 \u22522 \u26412 \u25351 \u20196 \u25945 \u23416 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9888 \u65039  \u27880 \u24847 \u20107 \u38917 \u65306  \u33509 \u36229 \u36942 \u12300 \u21462 \u28040 \u26399 \u38480 \u12301 \u25165 \u21462 \u28040 \u65292 \u19988 \u28961 \u20154 \u20505 \u35036 \u26178 \u65292 \u31995 \u32113 \u26371 \u25552 \u37266 \u24744 \u20173 \u38656 \u25903 \u20184 \u35442 \u22580 \u36027 \u29992 \u12290 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u12304  \u31649 \u29702 \u21729 \u21151 \u33021  \u12305  \u35531 \u27880 \u24847 \u26684 \u24335 \u65292 \u38656 \u25563 \u34892 \u36664 \u20837 \u65306 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u35373 \u23450 \u22577 \u21517 \u26399 \u38480  \u26684 \u24335 \u65306  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u35373 \u23450 \u22577 \u21517 \u26399 \u38480 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Thursday\cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 1500\cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u35373 \u23450 \u21462 \u28040 \u26399 \u38480  \u26684 \u24335 \u65306  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u35373 \u23450 \u21462 \u28040 \u26399 \u38480 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Friday\cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 1200\cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u35373 \u23450 \u33258 \u21205 \u37325 \u32622  \u26684 \u24335 \u65306  \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u35373 \u23450 \u37325 \u32622 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Saturday\cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 1200\cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u23395 \u25171 \u21517 \u21934 \u31649 \u29702 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u22686 \u21152 \u23395 \u25171  \u26684 \u24335 \u65306 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u22686 \u21152 \u23395 \u25171 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u30007 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Theo\cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u31227 \u38500 \u23395 \u25171       \u65306 \u25563 \u34892 \u36664 \u20837 \u35201 \u31227 \u38500 \u30340 \u22995 \u21517 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u37325 \u32622             \u65306 \u25163 \u21205 \u31435 \u21363 \u28165 \u31354 \u21517 \u21934 \u20006 \u36996 \u21407 \u28858 \u23395 \u25171 \u25104 \u21729 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u32129 \u23450 \u21517 \u21934 \u31649 \u29702 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u22686 \u21152 \u29305 \u23450 \u20154 \u21729  \u26684 \u24335 \u65306 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u22686 \u21152 \u22577 \u21517 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u22899 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Vivi\cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u21462 \u28040 \u29305 \u23450 \u20154 \u21729  \u26684 \u24335 \u65306 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u21462 \u28040 \u22577 \u21517 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u22899 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Vivi\cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u35373 \u23450 \u23395 \u25171 \u26178 \u38291  \u26684 \u24335 \u65306 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u35373 \u23450 \u23395 \u25171 \u26178 \u38291 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 Friday\cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 1900\cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u9679  \u28165 \u38500 \u35373 \u23450 \cf4 \cb1 \strokec4 \
+\
+\cf10 \cb3 \strokec10 \uc0\u31227 \u38500 \u22577 \u21517 \u26399 \u38480 \cf4 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 \uc0\u31227 \u38500 \u21462 \u28040 \u26399 \u38480 "\cf4 \strokec4 ;\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                     \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf7 \strokec7 helpMsg\cf4 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // \uc0\u35373 \u23450 \u26178 \u38291 /\u37325 \u32622 /\u26399 \u38480 
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u23395 \u25171 \u26178 \u38291 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u37325 \u32622 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u22577 \u21517 \u26399 \u38480 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u21462 \u28040 \u26399 \u38480 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 lines\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  \cf12 \strokec12 3\cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 Enum\cf6 \strokec6 .\cf8 \strokec8 TryParse\cf4 \strokec4 <\cf8 \strokec8 DayOfWeek\cf4 \strokec4 >(\cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ], \cf2 \strokec2 true\cf4 \strokec4 , \cf2 \strokec2 out\cf4 \strokec4  \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 day\cf4 \strokec4 ))\cb1 \
+\cb3                     \{\cb1 \
+\cb3                         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 timeStr\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 2\cf4 \strokec4 ]\cf6 \strokec6 .\cf8 \strokec8 Replace\cf4 \strokec4 (\cf10 \strokec10 ":"\cf4 \strokec4 , \cf10 \strokec10 ""\cf4 \strokec4 );\cb1 \
+\cb3                         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 timeStr\cf6 \strokec6 .\cf11 \strokec11 Length\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  \cf12 \strokec12 3\cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  \cf2 \strokec2 int\cf6 \strokec6 .\cf8 \strokec8 TryParse\cf4 \strokec4 (\cf7 \strokec7 timeStr\cf6 \strokec6 .\cf8 \strokec8 Substring\cf4 \strokec4 (\cf12 \strokec12 0\cf4 \strokec4 , \cf7 \strokec7 timeStr\cf6 \strokec6 .\cf11 \strokec11 Length\cf4 \strokec4  \cf6 \strokec6 -\cf4 \strokec4  \cf12 \strokec12 2\cf4 \strokec4 ), \cf2 \strokec2 out\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 h\cf4 \strokec4 ) \cf6 \strokec6 &&\cf4 \strokec4  \cf2 \strokec2 int\cf6 \strokec6 .\cf8 \strokec8 TryParse\cf4 \strokec4 (\cf7 \strokec7 timeStr\cf6 \strokec6 .\cf8 \strokec8 Substring\cf4 \strokec4 (\cf7 \strokec7 timeStr\cf6 \strokec6 .\cf11 \strokec11 Length\cf4 \strokec4  \cf6 \strokec6 -\cf4 \strokec4  \cf12 \strokec12 2\cf4 \strokec4 ), \cf2 \strokec2 out\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 m\cf4 \strokec4 ))\cb1 \
+\cb3                         \{\cb1 \
+\cb3                             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u23395 \u25171 \u26178 \u38291 "\cf4 \strokec4 ) \{ 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MatchDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 day\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MatchHour\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 h\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MatchMinute\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 m\cf4 \strokec4 ; \}\cb1 \
+\cb3                             \cf2 \strokec2 else\cf4 \strokec4  \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u37325 \u32622 "\cf4 \strokec4 ) \{ 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 ResetDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 day\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 ResetHour\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 h\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 ResetMinute\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 m\cf4 \strokec4 ; \}\cb1 \
+\cb3                             \cf2 \strokec2 else\cf4 \strokec4  \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u35373 \u23450 \u22577 \u21517 \u26399 \u38480 "\cf4 \strokec4 ) \{ 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 day\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineHour\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 h\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineMinute\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 m\cf4 \strokec4 ; \}\cb1 \
+\cb3                             \cf2 \strokec2 else\cf4 \strokec4  \{ 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 day\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineHour\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 h\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineMinute\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 m\cf4 \strokec4 ; \}\cb1 \
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                             \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u9881 \u65039  \{\cf7 \strokec7 cmd\cf10 \strokec10 \}\uc0\u24050 \u26356 \u26032 \u65306 \u27599 \u36913  \{\cf7 \strokec7 day\cf10 \strokec10 \} \{\cf7 \strokec7 h\cf6 \strokec6 :\cf10 \strokec10 D2\}:\{\cf7 \strokec7 m\cf6 \strokec6 :\cf10 \strokec10 D2\}"\cf4 \strokec4 );\cb1 \
+\cb3                         \}\cb1 \
+\cb3                     \}\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u31227 \u38500 \u22577 \u21517 \u26399 \u38480 "\cf4 \strokec4 ) \{ 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 null\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 (); \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u9989  \u24050 \u31227 \u38500 \u22577 \u21517 \u26399 \u38480 \u12290 "\cf4 \strokec4 ); \cf2 \strokec2 continue\cf4 \strokec4 ; \}\cb1 \
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u31227 \u38500 \u21462 \u28040 \u26399 \u38480 "\cf4 \strokec4 ) \{ 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 null\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 (); \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u9989  \u24050 \u31227 \u38500 \u21462 \u28040 \u26399 \u38480 \u12290 "\cf4 \strokec4 ); \cf2 \strokec2 continue\cf4 \strokec4 ; \}\cb1 \
+\
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u22686 \u21152 \u23395 \u25171 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u26356 \u26032 \u23395 \u25171 \u25104 \u21729 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u31227 \u38500 \u23395 \u25171 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 lines\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  \cf12 \strokec12 3\cf4 \strokec4 )\cb1 \
+\cb3                     \{\cb1 \
+\cb3                         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 targetSet\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (\cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ] \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleQuarterly\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleQuarterly\cf4 \strokec4 ;\cb1 \
+\cb3                         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u26356 \u26032 \u23395 \u25171 \u25104 \u21729 "\cf4 \strokec4 ) \cf7 \strokec7 targetSet\cf6 \strokec6 .\cf8 \strokec8 Clear\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 foreach\cf4 \strokec4  (\cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 n\cf4 \strokec4  \cf2 \strokec2 in\cf4 \strokec4  \cf7 \strokec7 lines\cf6 \strokec6 .\cf8 \strokec8 Skip\cf4 \strokec4 (\cf12 \strokec12 2\cf4 \strokec4 )) \{ \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u31227 \u38500 \u23395 \u25171 "\cf4 \strokec4 ) \cf7 \strokec7 targetSet\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (\cf7 \strokec7 n\cf4 \strokec4 ); \cf2 \strokec2 else\cf4 \strokec4  \cf7 \strokec7 targetSet\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (\cf7 \strokec7 n\cf4 \strokec4 ); \}\cb1 \
+\cb3                         
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u9989  \{\cf7 \strokec7 lines\cf10 \strokec10 [\cf12 \strokec12 1\cf10 \strokec10 ]\}\uc0\u24615 \u23395 \u25171 \u21517 \u21934 \u24050 \u26356 \u26032 \u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                     \}\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // --- \uc0\u26032 \u22686 \u65306 \u20462 \u25913 \u23395 \u25171 \u25104 \u21729 \u21517 \u31281  \u37007 \u36655  ---
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u20462 \u25913 \u23395 \u25171 \u25104 \u21729 \u21517 \u31281 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 lines\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  \cf12 \strokec12 3\cf4 \strokec4 )\cb1 \
+\cb3                     \{\cb1 \
+\cb3                         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 oldName\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ]; 
+\f1\i // \uc0\u21407 \u21517 \u31281 
+\f0\i0 \cb1 \
+\cb3                         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 newName\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 2\cf4 \strokec4 ]; 
+\f1\i // \uc0\u26032 \u21517 \u31281 
+\f0\i0 \cb1 \
+\cb3                         \cf2 \strokec2 bool\cf4 \strokec4  \cf7 \strokec7 found\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 false\cf4 \strokec4 ;\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                         // 1. \uc0\u24478 \u30007 \u29983 \u23395 \u25171 \u21517 \u21934 \u23563 \u25214 \u20006 \u26356 \u21517 
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                         \cf2 \strokec2 if\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Contains\cf4 \strokec4 (\cf7 \strokec7 oldName\cf4 \strokec4 ))\cb1 \
+\cb3                         \{\cb1 \
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (\cf7 \strokec7 oldName\cf4 \strokec4 );\cb1 \
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (\cf7 \strokec7 newName\cf4 \strokec4 );\cb1 \
+\cb3                             \cf7 \strokec7 found\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 true\cf4 \strokec4 ;\cb1 \
+\cb3                         \}\cb1 \
+\cb3                         \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                         // 2. \uc0\u24478 \u22899 \u29983 \u23395 \u25171 \u21517 \u21934 \u23563 \u25214 \u20006 \u26356 \u21517 
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                         \cf2 \strokec2 if\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Contains\cf4 \strokec4 (\cf7 \strokec7 oldName\cf4 \strokec4 ))\cb1 \
+\cb3                         \{\cb1 \
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (\cf7 \strokec7 oldName\cf4 \strokec4 );\cb1 \
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (\cf7 \strokec7 newName\cf4 \strokec4 );\cb1 \
+\cb3                             \cf7 \strokec7 found\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 true\cf4 \strokec4 ;\cb1 \
+\cb3                         \}\cb1 \
+\
+\cb3                         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 found\cf4 \strokec4 )\cb1 \
+\cb3                         \{\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                             // 3. \uc0\u21516 \u27493 \u20462 \u25913  WhiteList \u20013 \u30340 \u32129 \u23450 \u38364 \u20418  (\u35731 \u24050 \u32129 \u23450 \u30340 \u20154 \u19981 \u29992 \u37325 \u26032 \u32129 \u23450 )
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                             \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 bindingKeys\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf8 \strokec8 Where\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 x
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 =>\cf4 \strokec4  
+\f1\i \cf6 \strokec6 x
+\f0\i0 .\cf11 \strokec11 Value\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf7 \strokec7 oldName\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 Select\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 x
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 =>\cf4 \strokec4  
+\f1\i \cf6 \strokec6 x
+\f0\i0 .\cf11 \strokec11 Key\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 ToList\cf4 \strokec4 ();\cb1 \
+\cb3                             \cf2 \strokec2 foreach\cf4 \strokec4  (\cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 k\cf4 \strokec4  \cf2 \strokec2 in\cf4 \strokec4  \cf7 \strokec7 bindingKeys\cf4 \strokec4 )\cb1 \
+\cb3                             \{\cb1 \
+\cb3                                 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf4 \strokec4 [\cf7 \strokec7 k\cf4 \strokec4 ] \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 newName\cf4 \strokec4 ;\cb1 \
+\cb3                             \}\cb1 \
+\
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                             \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 (); 
+\f1\i // \uc0\u21516 \u27493 \u33267 \u34920 \u26684 \u65292 \u35731  Y \u36600 \u26356 \u26032 
+\f0\i0 \cb1 \
+\cb3                             \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u9989  \u24050 \u23559 \u23395 \u25171 \u25104 \u21729 \u12300 \{\cf7 \strokec7 oldName\cf10 \strokec10 \}\uc0\u12301 \u26356 \u21517 \u28858 \u12300 \{\cf7 \strokec7 newName\cf10 \strokec10 \}\uc0\u12301 \u12290 \cf6 \strokec6 \\n\cf10 \strokec10 (\uc0\u30456 \u38364 \u32129 \u23450 \u24050 \u33258 \u21205 \u21516 \u27493 )"\cf4 \strokec4 );\cb1 \
+\cb3                         \}\cb1 \
+\cb3                         \cf2 \strokec2 else\cf4 \cb1 \strokec4 \
+\cb3                         \{\cb1 \
+\cb3                             \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u10067  \u25214 \u19981 \u21040 \u21517 \u28858 \u12300 \{\cf7 \strokec7 oldName\cf10 \strokec10 \}\uc0\u12301 \u30340 \u23395 \u25171 \u25104 \u21729 \u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                         \}\cb1 \
+\cb3                     \}\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}                \cb1 \
+\
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u26597 \u35426 \u23395 \u25171 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 sb\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 StringBuilder\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u55357 \u56523  AceLink \u23395 \u25171 \u21517 \u21934 \u65306 "\cf4 \strokec4 );\cb1 \
+\cb3                     \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\uc0\u30007 \u65306 \{(
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleQuarterly\cf6 \strokec6 .\cf11 \strokec11 Count\cf10 \strokec10  \cf6 \strokec6 >\cf10 \strokec10  \cf12 \strokec12 0\cf10 \strokec10  \cf6 \strokec6 ?\cf10 \strokec10  \cf2 \strokec2 string\cf6 \strokec6 .\cf8 \strokec8 Join\cf10 \strokec10 (", ", 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleQuarterly\cf10 \strokec10 ) \cf6 \strokec6 :\cf10 \strokec10  "(\uc0\u31354 )")\}"\cf4 \strokec4 );\cb1 \
+\cb3                     \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\uc0\u22899 \u65306 \{(
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleQuarterly\cf6 \strokec6 .\cf11 \strokec11 Count\cf10 \strokec10  \cf6 \strokec6 >\cf10 \strokec10  \cf12 \strokec12 0\cf10 \strokec10  \cf6 \strokec6 ?\cf10 \strokec10  \cf2 \strokec2 string\cf6 \strokec6 .\cf8 \strokec8 Join\cf10 \strokec10 (", ", 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleQuarterly\cf10 \strokec10 ) \cf6 \strokec6 :\cf10 \strokec10  "(\uc0\u31354 )")\}"\cf4 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 ToString\cf4 \strokec4 ());\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u26597 \u35426 \u32129 \u23450 \u21517 \u21934 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 userList\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4  \cf6 \strokec6 ?\cf4 \strokec4  \cf2 \strokec2 string\cf6 \strokec6 .\cf8 \strokec8 Join\cf4 \strokec4 (\cf10 \strokec10 "\cf6 \strokec6 \\n\cf10 \strokec10 "\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf8 \strokec8 Select\cf4 \strokec4 ((
+\f1\i \cf6 \strokec6 x
+\f0\i0 \cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 i
+\f0\i0 \cf4 \strokec4 ) \cf6 \strokec6 =>\cf4 \strokec4  \cf10 \strokec10 $"\{
+\f1\i \cf6 \strokec6 i
+\f0\i0 \cf10 \strokec10  \cf6 \strokec6 +\cf10 \strokec10  \cf12 \strokec12 1\cf10 \strokec10 \}. \{
+\f1\i \cf6 \strokec6 x
+\f0\i0 .\cf11 \strokec11 Value\cf10 \strokec10 \}"\cf4 \strokec4 )) \cf6 \strokec6 :\cf4 \strokec4  \cf10 \strokec10 "(\uc0\u31354 )"\cf4 \strokec4 ;\cb1 \
+\cb3                     \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u55357 \u56523  \u24050 \u32129 \u23450 \u21517 \u21934 \u65306 \cf6 \strokec6 \\n\cf10 \strokec10 \{\cf7 \strokec7 userList\cf10 \strokec10 \}"\cf4 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf6 \strokec6 .\cf8 \strokec8 StartsWith\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u31227 \u38500 \u32129 \u23450 "\cf4 \strokec4 ))\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 target\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  \cf12 \strokec12 2\cf4 \strokec4  \cf6 \strokec6 ?\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ] \cf6 \strokec6 :\cf4 \strokec4  \cf7 \strokec7 cmd\cf6 \strokec6 .\cf8 \strokec8 Replace\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u31227 \u38500 \u32129 \u23450 "\cf4 \strokec4 , \cf10 \strokec10 ""\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 Trim\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 targetKeys\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf8 \strokec8 Where\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 x
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 =>\cf4 \strokec4  
+\f1\i \cf6 \strokec6 x
+\f0\i0 .\cf11 \strokec11 Value\cf6 \strokec6 .\cf8 \strokec8 Equals\cf4 \strokec4 (\cf7 \strokec7 target\cf4 \strokec4 , \cf8 \strokec8 StringComparison\cf6 \strokec6 .OrdinalIgnoreCase\cf4 \strokec4 ))\cf6 \strokec6 .\cf8 \strokec8 Select\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 x
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 =>\cf4 \strokec4  
+\f1\i \cf6 \strokec6 x
+\f0\i0 .\cf11 \strokec11 Key\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 ToList\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf2 \strokec2 foreach\cf4 \strokec4  (\cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 k\cf4 \strokec4  \cf2 \strokec2 in\cf4 \strokec4  \cf7 \strokec7 targetKeys\cf4 \strokec4 ) 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (\cf7 \strokec7 k\cf4 \strokec4 );\cb1 \
+\cb3                     
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u9989  \u24050 \u31227 \u38500  \{\cf7 \strokec7 target\cf10 \strokec10 \} \uc0\u30340 \u32129 \u23450 \u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u37325 \u32622 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 ResetToQuarterly\cf4 \strokec4 (); 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u55358 \u56825  \u24050 \u25163 \u21205 \u37325 \u32622 \u20006 \u21516 \u27493 \u33267 \u34920 \u26684 \u65306 \u36996 \u21407 \u23395 \u25171 \u25104 \u21729 \u20006 \u28165 \u31354 \u20505 \u35036 \u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // \uc0\u9679  \u22686 \u21152 \u29305 \u23450 \u20154 \u21729  \u26684 \u24335 \u65306 \u22686 \u21152 \u22577 \u21517 \\n\u22899 \\nVivi
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u22686 \u21152 \u22577 \u21517 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u21462 \u28040 \u22577 \u21517 "\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 lines\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  \cf12 \strokec12 3\cf4 \strokec4 )\cb1 \
+\cb3                     \{\cb1 \
+\cb3                         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 gender\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ];\cb1 \
+\cb3                         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 pName\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 2\cf4 \strokec4 ];\cb1 \
+\cb3                         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u22686 \u21152 \u22577 \u21517 "\cf4 \strokec4 )\cb1 \
+\cb3                         \{\cb1 \
+\cb3                             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 gender\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (\cf7 \strokec7 pName\cf4 \strokec4 );\cb1 \
+\cb3                             \cf2 \strokec2 else\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (\cf7 \strokec7 pName\cf4 \strokec4 );\cb1 \
+\cb3                         \}\cb1 \
+\cb3                         \cf2 \strokec2 else\cf4 \cb1 \strokec4 \
+\cb3                         \{\cb1 \
+\cb3                             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 gender\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 MaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (\cf7 \strokec7 pName\cf4 \strokec4 );\cb1 \
+\cb3                             \cf2 \strokec2 else\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 FemaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (\cf7 \strokec7 pName\cf4 \strokec4 );\cb1 \
+\cb3                         \}\cb1 \
+\cb3                         
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u9989  \u24050 \u25163 \u21205 \{\cf7 \strokec7 cmd\cf10 \strokec10 \}\uc0\u65306 \{\cf7 \strokec7 pName\cf10 \strokec10 \} (\{\cf7 \strokec7 gender\cf10 \strokec10 \})"\cf4 \strokec4 );\cb1 \
+\cb3                     \}\cb1 \
+\cb3                     \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3                 \}                \cb1 \
+\cb3             \}\cb1 \
+\cb3             \cf9 \strokec9 #endregion\cf4 \cb1 \strokec4 \
+\
+\cb3             \cf9 \strokec9 #region\cf4 \strokec4  \cf10 \strokec10 --- \uc0\u19968 \u33324 \u20351 \u29992 \u32773 \u25351 \u20196  ---\cf4 \cb1 \strokec4 \
+\
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf6 \strokec6 .\cf8 \strokec8 StartsWith\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u30003 \u35531 \u32129 \u23450 "\cf4 \strokec4 ))\cb1 \
+\cb3             \{\cb1 \
+\cb3                 \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 name\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 cmd\cf6 \strokec6 .\cf8 \strokec8 Replace\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u30003 \u35531 \u32129 \u23450 "\cf4 \strokec4 , \cf10 \strokec10 ""\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 Trim\cf4 \strokec4 ();\cb1 \
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf2 \strokec2 string\cf6 \strokec6 .\cf8 \strokec8 IsNullOrEmpty\cf4 \strokec4 (\cf7 \strokec7 name\cf4 \strokec4 ) \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 lines\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >\cf4 \strokec4  \cf12 \strokec12 1\cf4 \strokec4 ) \cf7 \strokec7 name\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 lines\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ];\cb1 \
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (\cf6 \strokec6 !\cf2 \strokec2 string\cf6 \strokec6 .\cf8 \strokec8 IsNullOrEmpty\cf4 \strokec4 (\cf7 \strokec7 name\cf4 \strokec4 )) \{\cb1 \
+\cb3                     
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf4 \strokec4 [\cf7 \strokec7 userId\cf4 \strokec4 ] \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 name\cf4 \strokec4 ; 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                     \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 $"\uc0\u9989  \u32129 \u23450 \u25104 \u21151 \u65281 \u27489 \u36814  \{\cf7 \strokec7 name\cf10 \strokec10 \}\uc0\u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                 \}\cb1 \
+\cb3                 \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3             \}\cb1 \
+\
+\cb3             \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 regMatch\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 Regex\cf6 \strokec6 .\cf8 \strokec8 Match\cf4 \strokec4 (\cf7 \strokec7 userMessage\cf4 \strokec4 , \cf10 \strokec10 @"\cf2 \strokec2 ^\cf10 \strokec10 (\cf6 \strokec6 \\+|-\cf10 \strokec10 )\\s\cf13 \strokec13 *\cf10 \strokec10 ([\cf6 \strokec6 1\cf10 \strokec10 -\cf6 \strokec6 2\cf10 \strokec10 ])\\s\cf13 \strokec13 *\cf10 \strokec10 (\cf6 \strokec6 \uc0\u30007 |\u22899 \cf10 \strokec10 )\cf2 \strokec2 $\cf10 \strokec10 "\cf4 \strokec4 );\cb1 \
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 regMatch\cf6 \strokec6 .\cf11 \strokec11 Success\cf4 \strokec4 )\cb1 \
+\cb3             \{\cb1 \
+\cb3                 \cf2 \strokec2 if\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 WhiteList\cf6 \strokec6 .\cf8 \strokec8 TryGetValue\cf4 \strokec4 (\cf7 \strokec7 userId\cf4 \strokec4 , \cf2 \strokec2 out\cf4 \strokec4  \cf2 \strokec2 string\cf6 \strokec6 ?\cf4 \strokec4  \cf7 \strokec7 name\cf4 \strokec4 ) \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 name\cf4 \strokec4  \cf6 \strokec6 !=\cf4 \strokec4  \cf2 \strokec2 null\cf4 \strokec4 )\cb1 \
+\cb3                 \{\cb1 \
+\cb3                     \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 action\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 regMatch\cf6 \strokec6 .\cf11 \strokec11 Groups\cf4 \strokec4 [\cf12 \strokec12 1\cf4 \strokec4 ]\cf6 \strokec6 .\cf11 \strokec11 Value\cf4 \strokec4 ;\cb1 \
+\cb3                     \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 count\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 int\cf6 \strokec6 .\cf8 \strokec8 Parse\cf4 \strokec4 (\cf7 \strokec7 regMatch\cf6 \strokec6 .\cf11 \strokec11 Groups\cf4 \strokec4 [\cf12 \strokec12 2\cf4 \strokec4 ]\cf6 \strokec6 .\cf11 \strokec11 Value\cf4 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 gender\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 regMatch\cf6 \strokec6 .\cf11 \strokec11 Groups\cf4 \strokec4 [\cf12 \strokec12 3\cf4 \strokec4 ]\cf6 \strokec6 .\cf11 \strokec11 Value\cf4 \strokec4 ;\cb1 \
+\
+\cb3                     \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 action\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "+"\cf4 \strokec4 ) \{\cb1 \
+\cb3                         \cf2 \strokec2 if\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 IsDeadlinePassed\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineDay\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineHour\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 DeadlineMinute\cf4 \strokec4 )) \cb1 \
+\cb3                             \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u9888 \u65039  \u24050 \u36229 \u36942 \u22577 \u21517 \u25130 \u27490 \u26178 \u38291 \u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                         \cf2 \strokec2 else\cf4 \strokec4  \{\cb1 \
+\cb3                             
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 AddPlayer\cf4 \strokec4 (\cf7 \strokec7 name\cf4 \strokec4 , \cf7 \strokec7 count\cf4 \strokec4 , \cf7 \strokec7 gender\cf4 \strokec4 ); 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                             \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 ();\cb1 \
+\cb3                             \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 GetFormattedList\cf4 \strokec4 (\cf10 \strokec10 $"\uc0\u9989  \{\cf7 \strokec7 name\cf10 \strokec10 \} \uc0\u22577 \u21517 \u25104 \u21151 "\cf4 \strokec4 ));\cb1 \
+\cb3                         \}\cb1 \
+\cb3                     \} \cf2 \strokec2 else\cf4 \strokec4  \{\cb1 \
+\cb3                         \cf2 \strokec2 bool\cf4 \strokec4  \cf7 \strokec7 overdue\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 IsDeadlinePassed\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineDay\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineHour\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf11 \strokec11 CancelDeadlineMinute\cf4 \strokec4 );\cb1 \
+\cb3                         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 res\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 RemovePlayer\cf4 \strokec4 (\cf7 \strokec7 name\cf4 \strokec4 , \cf7 \strokec7 count\cf4 \strokec4 , \cf7 \strokec7 overdue\cf4 \strokec4 , \cf7 \strokec7 gender\cf4 \strokec4 );\cb1 \
+\cb3                         
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 ();\cb1 \
+\cb3                         \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 GetFormattedList\cf4 \strokec4 (\cf7 \strokec7 res\cf4 \strokec4 ));\cb1 \
+\cb3                     \}\cb1 \
+\cb3                 \}\cb1 \
+\cb3                 \cf2 \strokec2 else\cf4 \strokec4  \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u9888 \u65039  \u35531 \u20808 \u36664 \u20837 \u12300 \u30003 \u35531 \u32129 \u23450  \u24744 \u30340 \u26289 \u31281 \u12301 \u12290 "\cf4 \strokec4 );\cb1 \
+\cb3                 \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3             \}\cb1 \
+\cb3             \cf2 \strokec2 else\cf4 \strokec4  \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 userMessage\cf6 \strokec6 .\cf8 \strokec8 StartsWith\cf4 \strokec4 (\cf10 \strokec10 "+"\cf4 \strokec4 ) \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 userMessage\cf6 \strokec6 .\cf8 \strokec8 StartsWith\cf4 \strokec4 (\cf10 \strokec10 "-"\cf4 \strokec4 ))\cb1 \
+\cb3             \{\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // \uc0\u30070 \u20351 \u29992 \u32773 \u36664 \u20837  +1 \u20294 \u26684 \u24335 \u19981 \u27491 \u30906 \u26178 \u65292 \u32102 \u20104 \u25552 \u31034 
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u9888 \u65039  \u25351 \u20196 \u26684 \u24335 \u37679 \u35492 \u12290 \u35531 \u36664 \u20837 \u27491 \u30906 \u26684 \u24335 \u65292 \u20363 \u22914 \u65306 +1\u30007  \u25110  -1\u22899 "\cf4 \strokec4 );\cb1 \
+\cb3             \}            \cb1 \
+\
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u26597 \u35426 "\cf4 \strokec4 ) \{ \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 data
+\f0\i0 .\cf8 \strokec8 GetFormattedList\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u55356 \u57296  \u30446 \u21069 \u22577 \u21517 \u29376 \u24907 "\cf4 \strokec4 )); \cf2 \strokec2 continue\cf4 \strokec4 ; \}\cb1 \
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u24171 \u21161 "\cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  \cf7 \strokec7 cmd\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u25351 \u20196 "\cf4 \strokec4 ) \{\cb1 \
+\cb3                 \cf2 \strokec2 await\cf4 \strokec4  
+\f1\i \cf6 \strokec6 lineClient
+\f0\i0 .\cf8 \strokec8 ReplyMessageAsync\cf4 \strokec4 (\cf7 \strokec7 replyToken\cf4 \strokec4 , \cf10 \strokec10 "\uc0\u55356 \u57296  AceLink \u25351 \u20196 \u35498 \u26126  \u55356 \u57296 \cf6 \strokec6 \\n\cf10 \strokec10 - \uc0\u22577 \u21517 \u65306 +1\u30007  / +2\u22899 \cf6 \strokec6 \\n\cf10 \strokec10 - \uc0\u21462 \u28040 \u65306 -1\u30007  / -1\u22899 \cf6 \strokec6 \\n\cf10 \strokec10 - \uc0\u29376 \u24907 \u65306 \u26597 \u35426 \cf6 \strokec6 \\n\cf10 \strokec10 - \uc0\u24115 \u34399 \u65306 \u30003 \u35531 \u32129 \u23450  [\u26289 \u31281 ] / \u25105 \u30340 ID"\cf4 \strokec4 );\cb1 \
+\cb3                 \cf2 \strokec2 continue\cf4 \strokec4 ;\cb1 \
+\cb3             \}\cb1 \
+\cb3             \cf9 \strokec9 #endregion\cf4 \cb1 \strokec4 \
+\cb3         \}\cb1 \
+\cb3     \}\cb1 \
+\cb3     \cf2 \strokec2 catch\cf4 \strokec4  (\cf7 \strokec7 Exception\cf4 \strokec4  \cf7 \strokec7 ex\cf4 \strokec4 ) \{ \cf7 \strokec7 Console\cf6 \strokec6 .\cf8 \strokec8 WriteLine\cf4 \strokec4 (\cf7 \strokec7 ex\cf6 \strokec6 .\cf11 \strokec11 Message\cf4 \strokec4 ); \}\cb1 \
+\cb3     \cf2 \strokec2 return\cf4 \strokec4  \cf7 \strokec7 Results\cf6 \strokec6 .\cf8 \strokec8 Ok\cf4 \strokec4 ();\cb1 \
+\cb3 \});\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7 \cb3 \strokec7 app\cf6 \strokec6 .\cf8 \strokec8 Run\cf4 \strokec4 ();\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf9 \cb3 \strokec9 #endregion\cf4 \cb1 \strokec4 \
+\
+\cf9 \cb3 \strokec9 #region\cf4 \strokec4  \cf10 \strokec10 --- 3. \uc0\u36039 \u26009 \u27169 \u22411 \u33287 \u32972 \u26223 \u26381 \u21209  (Class \u23450 \u32681 \u21312 ) ---\cf4 \cb1 \strokec4 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 class\cf4 \strokec4  \cf7 \strokec7 VolleyData\cf4 \cb1 \strokec4 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3 \{\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 MaxMale\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 9\cf4 \strokec4 ; \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 MaxFemale\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 9\cf4 \strokec4 ;\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 List\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 MaleParticipants\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 (); \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 List\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 FemaleParticipants\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 ();\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 List\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 MaleWaitingList\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 (); \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 List\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 FemaleWaitingList\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 ();\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 HashSet\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 MaleQuarterly\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 (); \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 HashSet\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 FemaleQuarterly\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 ();\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 Dictionary\cf4 \strokec4 <\cf2 \strokec2 string\cf4 \strokec4 , \cf2 \strokec2 string\cf4 \strokec4 > \cf11 \strokec11 WhiteList\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4 () \{ \{ \cf10 \strokec10 "U4ae0a4b6b86b73455ca52ccab9ebc652"\cf4 \strokec4 , \cf10 \strokec10 "Theo"\cf4 \strokec4  \} \};\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf8 \strokec8 DayOfWeek\cf4 \strokec4  \cf11 \strokec11 ResetDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Saturday\cf4 \strokec4 ; \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 ResetHour\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 12\cf4 \strokec4 ; \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 ResetMinute\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ;\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf8 \strokec8 DayOfWeek\cf4 \strokec4  \cf11 \strokec11 MatchDay\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Saturday\cf4 \strokec4 ; \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 MatchHour\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 19\cf4 \strokec4 ; \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 MatchMinute\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ;\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf8 \strokec8 DayOfWeek\cf6 \strokec6 ?\cf4 \strokec4  \cf11 \strokec11 DeadlineDay\cf4 \strokec4 , \cf11 \strokec11 CancelDeadlineDay\cf4 \strokec4 ;\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 int\cf4 \strokec4  \cf11 \strokec11 DeadlineHour\cf4 \strokec4 , \cf11 \strokec11 DeadlineMinute\cf4 \strokec4 , \cf11 \strokec11 CancelDeadlineHour\cf4 \strokec4 , \cf11 \strokec11 CancelDeadlineMinute\cf4 \strokec4 ;\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 void\cf4 \strokec4  \cf8 \strokec8 Save\cf4 \strokec4 () \cf6 \strokec6 =>\cf4 \strokec4  \cf7 \strokec7 File\cf6 \strokec6 .\cf8 \strokec8 WriteAllText\cf4 \strokec4 (\cf10 \strokec10 "data.json"\cf4 \strokec4 , \cf7 \strokec7 JsonConvert\cf6 \strokec6 .\cf8 \strokec8 SerializeObject\cf4 \strokec4 (\cf2 \strokec2 this\cf4 \strokec4 , \cf8 \strokec8 Formatting\cf6 \strokec6 .Indented\cf4 \strokec4 ));\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 static\cf4 \strokec4  \cf7 \strokec7 VolleyData\cf4 \strokec4  \cf8 \strokec8 Load\cf4 \strokec4 () \cf6 \strokec6 =>\cf4 \strokec4  \cf7 \strokec7 File\cf6 \strokec6 .\cf8 \strokec8 Exists\cf4 \strokec4 (\cf10 \strokec10 "data.json"\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf7 \strokec7 JsonConvert\cf6 \strokec6 .\cf8 \strokec8 DeserializeObject\cf4 \strokec4 <\cf7 \strokec7 VolleyData\cf4 \strokec4 >(\cf7 \strokec7 File\cf6 \strokec6 .\cf8 \strokec8 ReadAllText\cf4 \strokec4 (\cf10 \strokec10 "data.json"\cf4 \strokec4 )) \cf6 \strokec6 ??\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 VolleyData\cf4 \strokec4 () \cf6 \strokec6 :\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 VolleyData\cf4 \strokec4 ();\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 string\cf4 \strokec4  \cf8 \strokec8 GetFormattedList\cf4 \strokec4 (\cf2 \strokec2 string\cf4 \strokec4  
+\f1\i \cf6 \strokec6 title
+\f0\i0 \cf4 \strokec4 ) \{\cb1 \
+\cb3         \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 diff\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  ((\cf2 \strokec2 int\cf4 \strokec4 )\cf11 \strokec11 MatchDay\cf4 \strokec4  \cf6 \strokec6 -\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4 )\cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 Now\cf6 \strokec6 .\cf11 \strokec11 DayOfWeek\cf4 \strokec4  \cf6 \strokec6 +\cf4 \strokec4  \cf12 \strokec12 7\cf4 \strokec4 ) \cf6 \strokec6 %\cf4 \strokec4  \cf12 \strokec12 7\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 matchDate\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 Now\cf6 \strokec6 .\cf11 \strokec11 Date\cf6 \strokec6 .\cf8 \strokec8 AddDays\cf4 \strokec4 (\cf7 \strokec7 diff\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 sb\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 StringBuilder\cf4 \strokec4 ();\cb1 \
+\cb3         \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\uc0\u55357 \u56517  \{\cf7 \strokec7 matchDate\cf6 \strokec6 :\cf10 \strokec10 yyyy/MM/dd\} (\{\cf8 \strokec8 GetDayString\cf10 \strokec10 (\cf7 \strokec7 matchDate\cf6 \strokec6 .\cf11 \strokec11 DayOfWeek\cf10 \strokec10 )\})"\cf4 \strokec4 );\cb1 \
+\cb3         \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 title
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 +\cf4 \strokec4  \cf10 \strokec10 "\cf6 \strokec6 \\n\cf10 \strokec10 ------------------"\cf4 \strokec4 );\cb1 \
+\cb3         \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 "\uc0\u30007  =>"\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 for\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 1\cf4 \strokec4 ; \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 <=\cf4 \strokec4  \cf11 \strokec11 MaxMale\cf4 \strokec4 ; \cf7 \strokec7 i\cf6 \strokec6 ++\cf4 \strokec4 ) \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\{\cf7 \strokec7 i\cf10 \strokec10 \} : \{(\cf11 \strokec11 MaleParticipants\cf6 \strokec6 .\cf11 \strokec11 Count\cf10 \strokec10  \cf6 \strokec6 >=\cf10 \strokec10  \cf7 \strokec7 i\cf10 \strokec10  \cf6 \strokec6 ?\cf10 \strokec10  \cf11 \strokec11 MaleParticipants\cf10 \strokec10 [\cf7 \strokec7 i\cf6 \strokec6 -\cf12 \strokec12 1\cf10 \strokec10 ] \cf6 \strokec6 :\cf10 \strokec10  "")\}"\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf11 \strokec11 MaleWaitingList\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ) \{\cb1 \
+\cb3             \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 "\cf6 \strokec6 \\n\cf10 \strokec10 \uc0\u9203  \u30007 \u29983 \u20505 \u35036 :"\cf4 \strokec4 );\cb1 \
+\cb3             \cf2 \strokec2 for\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ; \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 <\cf4 \strokec4  \cf11 \strokec11 MaleWaitingList\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4 ; \cf7 \strokec7 i\cf6 \strokec6 ++\cf4 \strokec4 ) \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\uc0\u20505  \{\cf7 \strokec7 i\cf6 \strokec6 +\cf12 \strokec12 1\cf10 \strokec10 \}. \{\cf11 \strokec11 MaleWaitingList\cf10 \strokec10 [\cf7 \strokec7 i\cf10 \strokec10 ]\}"\cf4 \strokec4 );\cb1 \
+\cb3         \}\cb1 \
+\cb3         \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 "\cf6 \strokec6 \\n\cf10 \strokec10 \uc0\u22899  =>"\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 for\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 1\cf4 \strokec4 ; \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 <=\cf4 \strokec4  \cf11 \strokec11 MaxFemale\cf4 \strokec4 ; \cf7 \strokec7 i\cf6 \strokec6 ++\cf4 \strokec4 ) \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\{\cf7 \strokec7 i\cf6 \strokec6 +\cf11 \strokec11 MaxMale\cf10 \strokec10 \} : \{(\cf11 \strokec11 FemaleParticipants\cf6 \strokec6 .\cf11 \strokec11 Count\cf10 \strokec10  \cf6 \strokec6 >=\cf10 \strokec10  \cf7 \strokec7 i\cf10 \strokec10  \cf6 \strokec6 ?\cf10 \strokec10  \cf11 \strokec11 FemaleParticipants\cf10 \strokec10 [\cf7 \strokec7 i\cf6 \strokec6 -\cf12 \strokec12 1\cf10 \strokec10 ] \cf6 \strokec6 :\cf10 \strokec10  "")\}"\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf11 \strokec11 FemaleWaitingList\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ) \{\cb1 \
+\cb3             \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 "\cf6 \strokec6 \\n\cf10 \strokec10 \uc0\u9203  \u22899 \u29983 \u20505 \u35036 :"\cf4 \strokec4 );\cb1 \
+\cb3             \cf2 \strokec2 for\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ; \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 <\cf4 \strokec4  \cf11 \strokec11 FemaleWaitingList\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4 ; \cf7 \strokec7 i\cf6 \strokec6 ++\cf4 \strokec4 ) \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 AppendLine\cf4 \strokec4 (\cf10 \strokec10 $"\uc0\u20505  \{\cf7 \strokec7 i\cf6 \strokec6 +\cf12 \strokec12 1\cf10 \strokec10 \}. \{\cf11 \strokec11 FemaleWaitingList\cf10 \strokec10 [\cf7 \strokec7 i\cf10 \strokec10 ]\}"\cf4 \strokec4 );\cb1 \
+\cb3         \}\cb1 \
+\cb3         \cf2 \strokec2 return\cf4 \strokec4  \cf7 \strokec7 sb\cf6 \strokec6 .\cf8 \strokec8 ToString\cf4 \strokec4 ();\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 void\cf4 \strokec4  \cf8 \strokec8 AddPlayer\cf4 \strokec4 (\cf2 \strokec2 string\cf4 \strokec4  
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 int\cf4 \strokec4  
+\f1\i \cf6 \strokec6 c
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 string\cf4 \strokec4  
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4 ) \{\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 list\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf11 \strokec11 MaleParticipants\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf11 \strokec11 FemaleParticipants\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 wait\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf11 \strokec11 MaleWaitingList\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf11 \strokec11 FemaleWaitingList\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 max\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf11 \strokec11 MaxMale\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf11 \strokec11 MaxFemale\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 for\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ; \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 <\cf4 \strokec4  
+\f1\i \cf6 \strokec6 c
+\f0\i0 \cf4 \strokec4 ; \cf7 \strokec7 i\cf6 \strokec6 ++\cf4 \strokec4 ) \{ \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 list\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 <\cf4 \strokec4  \cf7 \strokec7 max\cf4 \strokec4 ) \cf7 \strokec7 list\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf4 \strokec4 ); \cf2 \strokec2 else\cf4 \strokec4  \cf7 \strokec7 wait\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf4 \strokec4 ); \}\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 string\cf4 \strokec4  \cf8 \strokec8 RemovePlayer\cf4 \strokec4 (\cf2 \strokec2 string\cf4 \strokec4  
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 int\cf4 \strokec4  
+\f1\i \cf6 \strokec6 c
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 bool\cf4 \strokec4  
+\f1\i \cf6 \strokec6 o
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 string\cf4 \strokec4  
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4 ) \{\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 list\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf11 \strokec11 MaleParticipants\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf11 \strokec11 FemaleParticipants\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 wait\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf10 \strokec10 "\uc0\u30007 "\cf4 \strokec4 ) \cf6 \strokec6 ?\cf4 \strokec4  \cf11 \strokec11 MaleWaitingList\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf11 \strokec11 FemaleWaitingList\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 rem\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ; \cf2 \strokec2 bool\cf4 \strokec4  \cf7 \strokec7 warn\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 false\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 for\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ; \cf7 \strokec7 i\cf4 \strokec4  \cf6 \strokec6 <\cf4 \strokec4  
+\f1\i \cf6 \strokec6 c
+\f0\i0 \cf4 \strokec4 ; \cf7 \strokec7 i\cf6 \strokec6 ++\cf4 \strokec4 ) \{\cb1 \
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 wait\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf4 \strokec4 )) \cf7 \strokec7 rem\cf6 \strokec6 ++\cf4 \strokec4 ;\cb1 \
+\cb3             \cf2 \strokec2 else\cf4 \strokec4  \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 list\cf6 \strokec6 .\cf8 \strokec8 Remove\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf4 \strokec4 )) \{ \cb1 \
+\cb3                 \cf7 \strokec7 rem\cf6 \strokec6 ++\cf4 \strokec4 ; \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 wait\cf6 \strokec6 .\cf11 \strokec11 Count\cf4 \strokec4  \cf6 \strokec6 >\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ) \{ \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 next\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 wait\cf4 \strokec4 [\cf12 \strokec12 0\cf4 \strokec4 ]; \cf7 \strokec7 wait\cf6 \strokec6 .\cf8 \strokec8 RemoveAt\cf4 \strokec4 (\cf12 \strokec12 0\cf4 \strokec4 ); \cf7 \strokec7 list\cf6 \strokec6 .\cf8 \strokec8 Add\cf4 \strokec4 (\cf7 \strokec7 next\cf4 \strokec4 ); \} \cb1 \
+\cb3                 \cf2 \strokec2 else\cf4 \strokec4  \cf2 \strokec2 if\cf4 \strokec4  (
+\f1\i \cf6 \strokec6 o
+\f0\i0 \cf4 \strokec4 ) \cf7 \strokec7 warn\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 true\cf4 \strokec4 ; \cb1 \
+\cb3             \}\cb1 \
+\cb3         \}\cb1 \
+\cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 rem\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4 ) \cf2 \strokec2 return\cf4 \strokec4  \cf10 \strokec10 $"\uc0\u10067  \{
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf10 \strokec10 \}\uc0\u21517 \u21934 \u27794 \u25214 \u21040  \{
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf10 \strokec10 \}"\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 return\cf4 \strokec4  \cf7 \strokec7 warn\cf4 \strokec4  \cf6 \strokec6 ?\cf4 \strokec4  \cf10 \strokec10 $"\{
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf10 \strokec10 \}\uc0\u24744 \u22909 \u65292 \u22240 \u24050 \u36942 \u21462 \u28040 \u26399 \u38480 \u65292 \u33509 \u28961 \u36958 \u35036 \u20173 \u38656 \u32371 \u36027 "\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf10 \strokec10 $"\uc0\u10060  \{
+\f1\i \cf6 \strokec6 n
+\f0\i0 \cf10 \strokec10 \} \uc0\u24050 \u21462 \u28040  \{
+\f1\i \cf6 \strokec6 g
+\f0\i0 \cf10 \strokec10 \} \{\cf7 \strokec7 rem\cf10 \strokec10 \} \uc0\u20301 "\cf4 \strokec4 ;\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 private\cf4 \strokec4  \cf2 \strokec2 string\cf4 \strokec4  \cf8 \strokec8 GetDayString\cf4 \strokec4 (\cf8 \strokec8 DayOfWeek\cf4 \strokec4  
+\f1\i \cf6 \strokec6 d
+\f0\i0 \cf4 \strokec4 ) \cf6 \strokec6 =>\cf4 \strokec4  
+\f1\i \cf6 \strokec6 d
+\f0\i0 \cf4 \strokec4  \cf2 \strokec2 switch\cf4 \strokec4  \{ \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Monday=>\cf10 \strokec10 "\uc0\u19968 "\cf4 \strokec4 , \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Tuesday=>\cf10 \strokec10 "\uc0\u20108 "\cf4 \strokec4 , \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Wednesday=>\cf10 \strokec10 "\uc0\u19977 "\cf4 \strokec4 , \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Thursday=>\cf10 \strokec10 "\uc0\u22235 "\cf4 \strokec4 , \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Friday=>\cf10 \strokec10 "\uc0\u20116 "\cf4 \strokec4 , \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Saturday=>\cf10 \strokec10 "\uc0\u20845 "\cf4 \strokec4 , \cf8 \strokec8 DayOfWeek\cf6 \strokec6 .Sunday=>\cf10 \strokec10 "\uc0\u26085 "\cf4 \strokec4 , \cf2 \strokec2 _\cf6 \strokec6 =>\cf10 \strokec10 ""\cf4 \strokec4  \};\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 bool\cf4 \strokec4  \cf8 \strokec8 IsDeadlinePassed\cf4 \strokec4 (\cf8 \strokec8 DayOfWeek\cf6 \strokec6 ?\cf4 \strokec4  
+\f1\i \cf6 \strokec6 dDay
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 int\cf4 \strokec4  
+\f1\i \cf6 \strokec6 h
+\f0\i0 \cf4 \strokec4 , \cf2 \strokec2 int\cf4 \strokec4  
+\f1\i \cf6 \strokec6 m
+\f0\i0 \cf4 \strokec4 ) \{\cb1 \
+\cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf6 \strokec6 !
+\f1\i dDay
+\f0\i0 .\cf11 \strokec11 HasValue\cf4 \strokec4 ) \cf2 \strokec2 return\cf4 \strokec4  \cf2 \strokec2 false\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 now\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 Now\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 int\cf4 \strokec4  \cf7 \strokec7 diff\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  ((\cf2 \strokec2 int\cf4 \strokec4 )
+\f1\i \cf6 \strokec6 dDay
+\f0\i0 .\cf11 \strokec11 Value\cf4 \strokec4  \cf6 \strokec6 -\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4 )\cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 DayOfWeek\cf4 \strokec4  \cf6 \strokec6 +\cf4 \strokec4  \cf12 \strokec12 7\cf4 \strokec4 ) \cf6 \strokec6 %\cf4 \strokec4  \cf12 \strokec12 7\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 deadline\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Date\cf6 \strokec6 .\cf8 \strokec8 AddDays\cf4 \strokec4 (\cf7 \strokec7 diff\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  (\cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Hour\cf4 \strokec4  \cf6 \strokec6 >\cf4 \strokec4  
+\f1\i \cf6 \strokec6 h
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 ||\cf4 \strokec4  (\cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Hour\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  
+\f1\i \cf6 \strokec6 h
+\f0\i0 \cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Minute\cf4 \strokec4  \cf6 \strokec6 >=\cf4 \strokec4  
+\f1\i \cf6 \strokec6 m
+\f0\i0 \cf4 \strokec4 )) \cf6 \strokec6 ?\cf4 \strokec4  \cf12 \strokec12 0\cf4 \strokec4  \cf6 \strokec6 :\cf4 \strokec4  \cf7 \strokec7 diff\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 AddHours\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 h
+\f0\i0 \cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 AddMinutes\cf4 \strokec4 (
+\f1\i \cf6 \strokec6 m
+\f0\i0 \cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 deadline\cf4 \strokec4  \cf8 \strokec8 <\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf8 \strokec8 AddDays\cf4 \strokec4 (\cf6 \strokec6 -\cf12 \strokec12 3\cf4 \strokec4 )) \cf7 \strokec7 deadline\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 deadline\cf6 \strokec6 .\cf8 \strokec8 AddDays\cf4 \strokec4 (\cf12 \strokec12 7\cf4 \strokec4 ); \cb1 \
+\cb3         \cf2 \strokec2 return\cf4 \strokec4  \cf7 \strokec7 now\cf4 \strokec4  \cf8 \strokec8 >\cf4 \strokec4  \cf7 \strokec7 deadline\cf4 \strokec4 ;\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 void\cf4 \strokec4  \cf8 \strokec8 ResetToQuarterly\cf4 \strokec4 () \{\cb1 \
+\cb3         \cf11 \strokec11 MaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Clear\cf4 \strokec4 (); \cf11 \strokec11 FemaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Clear\cf4 \strokec4 (); \cf11 \strokec11 MaleWaitingList\cf6 \strokec6 .\cf8 \strokec8 Clear\cf4 \strokec4 (); \cf11 \strokec11 FemaleWaitingList\cf6 \strokec6 .\cf8 \strokec8 Clear\cf4 \strokec4 ();\cb1 \
+\cb3         \cf11 \strokec11 MaleParticipants\cf6 \strokec6 .\cf8 \strokec8 AddRange\cf4 \strokec4 (\cf11 \strokec11 MaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Take\cf4 \strokec4 (\cf11 \strokec11 MaxMale\cf4 \strokec4 )); \cf11 \strokec11 FemaleParticipants\cf6 \strokec6 .\cf8 \strokec8 AddRange\cf4 \strokec4 (\cf11 \strokec11 FemaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Take\cf4 \strokec4 (\cf11 \strokec11 MaxFemale\cf4 \strokec4 ));\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 async\cf4 \strokec4  \cf7 \strokec7 Task\cf4 \strokec4  \cf8 \strokec8 SyncToSheets\cf4 \strokec4 () \{\cb1 \
+\cb3         \cf2 \strokec2 string\cf4 \strokec4  \cf7 \strokec7 gasUrl\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf10 \strokec10 "https://script.google.com/macros/s/AKfycbyCq2oLCiVrBAEtsgVyKrD-vQzF2Sw5u7te3LooLrKLik7c2ES183Uw8pu0Li_1FkBm/exec"\cf4 \strokec4 ; \cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 payload\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \{\cb1 \
+\cb3                 \cf11 \strokec11 matchDate\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 Now\cf6 \strokec6 .\cf11 \strokec11 Date\cf6 \strokec6 .\cf8 \strokec8 AddDays\cf4 \strokec4 (((\cf2 \strokec2 int\cf4 \strokec4 )\cf11 \strokec11 MatchDay\cf4 \strokec4  \cf6 \strokec6 -\cf4 \strokec4  (\cf2 \strokec2 int\cf4 \strokec4 )\cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 Now\cf6 \strokec6 .\cf11 \strokec11 DayOfWeek\cf4 \strokec4  \cf6 \strokec6 +\cf4 \strokec4  \cf12 \strokec12 7\cf4 \strokec4 ) \cf6 \strokec6 %\cf4 \strokec4  \cf12 \strokec12 7\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 ToString\cf4 \strokec4 (\cf10 \strokec10 "yyyy/MM/dd"\cf4 \strokec4 ),\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // \uc0\u20659 \u36865 \u30070 \u21069 \u22577 \u21517 \u25104 \u21151 \u30340 \u25152 \u26377 \u20154  (\u29992 \u20358 \u21028 \u26039 \u23395 \u25171 \u26159 \u21542 \u26377 \u20986 \u24109 )
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf11 \strokec11 currentParticipants\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf11 \strokec11 MaleParticipants\cf6 \strokec6 .\cf8 \strokec8 Concat\cf4 \strokec4 (\cf11 \strokec11 FemaleParticipants\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 ToList\cf4 \strokec4 (),\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\i \cf4 \cb3                 // \uc0\u20659 \u36865 \u25152 \u26377 \u23395 \u25171 \u25104 \u21729 \u21517 \u21934  (\u29992 \u20358 \u24314 \u31435  Y \u36600 )
+\f0\i0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3                 \cf11 \strokec11 quarterlyMembers\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf11 \strokec11 MaleQuarterly\cf6 \strokec6 .\cf8 \strokec8 Concat\cf4 \strokec4 (\cf11 \strokec11 FemaleQuarterly\cf4 \strokec4 )\cf6 \strokec6 .\cf8 \strokec8 ToList\cf4 \strokec4 ()\cb1 \
+\cb3         \};\cb1 \
+\cb3         \cf2 \strokec2 using\cf4 \strokec4  \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 client\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 HttpClient\cf4 \strokec4 ();\cb1 \
+\cb3         \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 content\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf2 \strokec2 new\cf4 \strokec4  \cf7 \strokec7 StringContent\cf4 \strokec4 (\cf7 \strokec7 JsonConvert\cf6 \strokec6 .\cf8 \strokec8 SerializeObject\cf4 \strokec4 (\cf7 \strokec7 payload\cf4 \strokec4 ), \cf7 \strokec7 Encoding\cf6 \strokec6 .\cf11 \strokec11 UTF8\cf4 \strokec4 , \cf10 \strokec10 "application/json"\cf4 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 try\cf4 \strokec4  \{ \cf2 \strokec2 await\cf4 \strokec4  \cf7 \strokec7 client\cf6 \strokec6 .\cf8 \strokec8 PostAsync\cf4 \strokec4 (\cf7 \strokec7 gasUrl\cf4 \strokec4 , \cf7 \strokec7 content\cf4 \strokec4 ); \} \cf2 \strokec2 catch\cf4 \strokec4  \{ \}\cb1 \
+\cb3     \}  \cb1 \
+\cb3 \}\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec2 public\cf4 \strokec4  \cf2 \strokec2 class\cf4 \strokec4  \cf7 \strokec7 ResetTaskService\cf4 \strokec4  : \cf7 \strokec7 BackgroundService\cf4 \strokec4  \{\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf4 \cb3     \cf2 \strokec2 private\cf4 \strokec4  \cf2 \strokec2 readonly\cf4 \strokec4  \cf7 \strokec7 VolleyData\cf4 \strokec4  \cf11 \strokec11 _data\cf4 \strokec4 ;\cb1 \
+\cb3     \cf2 \strokec2 public\cf4 \strokec4  \cf7 \strokec7 ResetTaskService\cf4 \strokec4 (\cf7 \strokec7 VolleyData\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 \cf4 \strokec4 ) \cf6 \strokec6 =>\cf4 \strokec4  \cf11 \strokec11 _data\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  
+\f1\i \cf6 \strokec6 data
+\f0\i0 \cf4 \strokec4 ;\cb1 \
+\cb3     \cf2 \strokec2 protected\cf4 \strokec4  \cf2 \strokec2 override\cf4 \strokec4  \cf2 \strokec2 async\cf4 \strokec4  \cf7 \strokec7 Task\cf4 \strokec4  \cf8 \strokec8 ExecuteAsync\cf4 \strokec4 (\cf8 \strokec8 CancellationToken\cf4 \strokec4  
+\f1\i \cf6 \strokec6 stoppingToken
+\f0\i0 \cf4 \strokec4 ) \{\cb1 \
+\cb3         \cf8 \strokec8 DateTime\cf4 \strokec4  \cf7 \strokec7 lastResetDate\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 MinValue\cf4 \strokec4 ;\cb1 \
+\cb3         \cf2 \strokec2 while\cf4 \strokec4  (\cf6 \strokec6 !
+\f1\i stoppingToken
+\f0\i0 .\cf11 \strokec11 IsCancellationRequested\cf4 \strokec4 ) \{\cb1 \
+\cb3             \cf2 \strokec2 var\cf4 \strokec4  \cf7 \strokec7 now\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf8 \strokec8 DateTime\cf6 \strokec6 .\cf11 \strokec11 Now\cf4 \strokec4 ;\cb1 \
+\cb3             \cf2 \strokec2 if\cf4 \strokec4  (\cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 DayOfWeek\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf11 \strokec11 _data\cf6 \strokec6 .\cf11 \strokec11 ResetDay\cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Hour\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf11 \strokec11 _data\cf6 \strokec6 .\cf11 \strokec11 ResetHour\cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Minute\cf4 \strokec4  \cf6 \strokec6 ==\cf4 \strokec4  \cf11 \strokec11 _data\cf6 \strokec6 .\cf11 \strokec11 ResetMinute\cf4 \strokec4  \cf6 \strokec6 &&\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Date\cf4 \strokec4  \cf8 \strokec8 !=\cf4 \strokec4  \cf7 \strokec7 lastResetDate\cf6 \strokec6 .\cf11 \strokec11 Date\cf4 \strokec4 ) \{\cb1 \
+\cb3                 \cf11 \strokec11 _data\cf6 \strokec6 .\cf8 \strokec8 ResetToQuarterly\cf4 \strokec4 (); \cf11 \strokec11 _data\cf6 \strokec6 .\cf8 \strokec8 Save\cf4 \strokec4 ();\cb1 \
+\cb3                 \cf2 \strokec2 _\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf11 \strokec11 _data\cf6 \strokec6 .\cf8 \strokec8 SyncToSheets\cf4 \strokec4 (); \cb1 \
+\cb3                 \cf7 \strokec7 lastResetDate\cf4 \strokec4  \cf6 \strokec6 =\cf4 \strokec4  \cf7 \strokec7 now\cf6 \strokec6 .\cf11 \strokec11 Date\cf4 \strokec4 ;\cb1 \
+\cb3             \}\cb1 \
+\cb3             \cf2 \strokec2 await\cf4 \strokec4  \cf7 \strokec7 Task\cf6 \strokec6 .\cf8 \strokec8 Delay\cf4 \strokec4 (\cf12 \strokec12 30000\cf4 \strokec4 , 
+\f1\i \cf6 \strokec6 stoppingToken
+\f0\i0 \cf4 \strokec4 );\cb1 \
+\cb3         \}\cb1 \
+\cb3     \}\cb1 \
+\cb3 \}\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf9 \cb3 \strokec9 #endregion\cf4 \cb1 \strokec4 \
+}
