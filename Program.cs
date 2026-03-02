@@ -42,7 +42,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string replyToken = ev.replyToken;
             string userMessage = (ev.message?.text ?? "").ToString().Replace("　", " ").Trim();
             string userId = ev.source?.userId ?? "";
-            bool isAdmin = (userId == "U4ae0a4b6b86b73455ca52ccab9ebc652");
+            // 只要 userId 在這個清單內，就是管理員
+            var adminList = new HashSet<string> { 
+                "U4ae0a4b6b86b73455ca52ccab9ebc652", // 你自己 (Theo)
+                "U5b9e1a119b4fbdf57efadd12644e33ed"  // 阿平
+            };            
+            bool isAdmin = adminList.Contains(userId);
             if (string.IsNullOrEmpty(userMessage)) continue;
 
             if (userMessage == "我的ID")
@@ -335,7 +340,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 await lineClient.ReplyMessageAsync(replyToken, "⚠️ 您好，您尚未輸入性別。\n範例：+1男 或 -1女");
                 continue;
             }
-            
+
             var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)$");
             if (regMatch.Success || userMessage == "查詢")
             {
