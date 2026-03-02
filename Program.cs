@@ -173,7 +173,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                 if (cmd == "管理員指令")
                 {
-                    string helpMsg = @"┏━ 🏐 AceLink 管理員中心 ━┓
+                    string helpMsg = @"┏━🏐 AceLink 管理員中心━┓
 
 【 核心初始化與重置 】
 ● 系統初始化 ➜ 啟動五步驟引導流程
