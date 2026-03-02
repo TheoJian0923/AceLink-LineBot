@@ -329,6 +329,13 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             #endregion
 
             #region --- 一般使用者指令 ---
+            var genderMissingMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])$");
+            if (genderMissingMatch.Success)
+            {
+                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 您好，您尚未輸入性別。\n範例：+1男 或 -1女");
+                continue;
+            }
+            
             var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)$");
             if (regMatch.Success || userMessage == "查詢")
             {
