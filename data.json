@@ -3,20 +3,18 @@
   "MaxFemale": 9,
   "MaleParticipants": [
     "阿平",
+    "阿苑",
+    "柏成",
+    "老王",
     "阿儒",
-    "麵包",
-    "偉豪",
-    "阿俊",
-    "Domi",
-    "小剛",
-    "阿俊",
-    "阿俊",
-    "阿俊"
+    "榮叔",
+    "麵包"
   ],
   "FemaleParticipants": [
-    "阿俊",
-    "阿俊",
-    "阿俊"
+    "紫寧",
+    "索爾",
+    "小嘉",
+    "梅乾"
   ],
   "MaleWaitingList": [],
   "FemaleWaitingList": [],
@@ -44,7 +42,8 @@
   "QuarterlyFee": 200,
   "AcFee": 30,
   "AcRecords": {
-    "20260213": false
+    "20260213": false,
+    "20260227": false
   },
   "ClosedDates": {},
   "ResetDay": 6,

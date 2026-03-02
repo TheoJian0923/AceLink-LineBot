@@ -8,8 +8,8 @@ using System.Text.RegularExpressions;
 var builder = WebApplication.CreateBuilder(args);
 
 #region --- 1. 核心服務配置 ---
-string accessToken = "boROWeqxC8q0KBHZDuZcqqb3/JjyIMvNMLB1s+O+/IM1XhikY4Vms0PiHhnaDsUwvDr1s/TlrNLfcEH6YBeqXcy9FwIVmG24AcRmXExCCUdLNHAR7u74NymPtNhYLiOxmNZo7ikRppaiiym2OMCkaQdB04t89/1O/w1cDnyilFU=";
-string channelSecret = "ddd264aa156037c7b045257f3c23381d";
+string accessToken = Environment.GetEnvironmentVariable("LINE_ACCESS_TOKEN") ?? "";
+string channelSecret = Environment.GetEnvironmentVariable("LINE_CHANNEL_SECRET") ?? "";
 
 var botData = VolleyData.Load();
 builder.Services.AddSingleton(botData);
