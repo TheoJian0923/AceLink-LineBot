@@ -203,7 +203,6 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
 【 隱藏功能與外部連結 】
 ● 我的ID ➜ 查詢個人的 LINE UID
-● 網址 /api/notes ➜ iPhone 收款筆記介面
 
 ┗━━━━━━━━━━━━┛";
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
