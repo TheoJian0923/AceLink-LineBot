@@ -389,10 +389,30 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             if (cmd.StartsWith("申請綁定"))
             {
                 string targetName = cmd.Replace("申請綁定", "").Trim();
-                if (!string.IsNullOrEmpty(targetName)) {
-                    bool isTaken = data.WhiteList.Any(x => x.Key != userId && x.Value == targetName) || data.MaleQuarterly.Contains(targetName) || data.FemaleQuarterly.Contains(targetName);
-                    if (isTaken) { await lineClient.ReplyMessageAsync(replyToken, "您好，此暱稱已被使用，請重新綁定"); }
-                    else { data.WhiteList[userId] = targetName; data.Save(); await lineClient.ReplyMessageAsync(replyToken, $"✅ 歡迎 {targetName} 綁定成功。"); }
+                if (!string.IsNullOrEmpty(targetName)) 
+                {
+                    // 1. 檢查這個名字是否已經被「別的 UserId」綁定走了
+                    // 只要 WhiteList 裡有人用這個名字，且那個人不是發訊者自己，就是真正被佔用
+                    bool isAlreadyBoundByOthers = data.WhiteList.Any(x => x.Key != userId && x.Value == targetName);
+
+                    if (isAlreadyBoundByOthers) 
+                    { 
+                        await lineClient.ReplyMessageAsync(replyToken, "⚠️ 您好，此暱稱已被其他使用者綁定，請聯絡管理員或更換暱稱。"); 
+                    }
+                    else 
+                    { 
+                        // 2. 允許綁定：無論名字是否在季打名單內，只要沒人綁走就可以綁
+                        data.WhiteList[userId] = targetName; 
+                        data.Save(); 
+                        
+                        // 3. 給予不同的歡迎語（如果是名單內的人，給予專屬回覆）
+                        bool isQuarterly = data.MaleQuarterly.Contains(targetName) || data.FemaleQuarterly.Contains(targetName);
+                        string welcomeMsg = isQuarterly 
+                            ? $"✅ 歡迎季打球員 {targetName}！身分已自動識別，可以開始報名囉！" 
+                            : $"✅ 歡迎 {targetName} 綁定成功，可以開始報名囉！";
+                            
+                        await lineClient.ReplyMessageAsync(replyToken, welcomeMsg); 
+                    }
                 }
                 continue;
             }
