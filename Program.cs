@@ -268,9 +268,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             _ = Task.Run(async () => {
                                 try {
                                     await data.SyncToSheets(lineClient, groupId, true);
-                                    await lineClient.PushMessageAsync(userId, $"✅ 季度設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已同步生成。");
+                                    await lineClient.PushMessageAsync(groupId, $"✅ 季度設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已同步生成。");
                                 } catch {
-                                    await lineClient.PushMessageAsync(userId, "❌ 雲端同步失敗，請檢查網絡或 GAS 設定。");
+                                    await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網絡或 GAS 設定。");
                                 }
                             });
                         }
