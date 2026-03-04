@@ -30,3 +30,4 @@
 /Users/theojian/VolleyManager/obj/Debug/net9.0/VolleyManager.genruntimeconfig.cache
 /Users/theojian/VolleyManager/obj/Debug/net9.0/ref/VolleyManager.dll
 /Users/theojian/VolleyManager/bin/Debug/net9.0/data.json
+/Users/theojian/VolleyManager/obj/Debug/net9.0/VolleyManager.sourcelink.json
