@@ -213,6 +213,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 【 成員維護 】
 ● 查詢季打 / 增加季打 / 移除季打
 ● 修改季打成員名稱 ↵ 舊名 ↵ 新名
+
 【 手動報名干預 】
 ● 增加報名 / 取消報名 ↵ 性別 ↵ 姓名
 ┗━━━━━━━━━━━━┛";
