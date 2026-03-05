@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VolleyManager")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+505e05ab93ca32e5042215ffd82886b0d5343f8a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+336251ab874ab0e077bc1399e61f2b33ebf2519a")]
 [assembly: System.Reflection.AssemblyProductAttribute("VolleyManager")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VolleyManager")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

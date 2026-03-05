@@ -422,6 +422,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 【 報名操作 】
 ● 報名 ➜ +1男 / +2女
 ● 取消 ➜ -1男 / -1女
+
 【 查詢與帳號 】
 ● 查詢 ➜ 顯示目前報名狀態
 ● 申請綁定 [暱稱]
