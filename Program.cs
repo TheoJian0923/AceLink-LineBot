@@ -195,13 +195,14 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 {
                     string helpMsg = @"┏━🏐 AceLink 管理員中心━┓
     【 核心配置 】
-    ● 系統初始化 ➜ 啟動引導式流程
-    ● 重置 ➜ 恢復當週季打名單並清空候補
+    ● 系統初始化 ➜ 
+    啟動引導式流程
+    ● 重置 ➜ 
+    恢復當週季打名單並清空候補
 
     【 賽季與期限設定 】
     ● 設定季打時間並創建新表格
     開始日 ↵ 結束日 ↵ 星期 ↵ 時間
-
     ● 設定[報名/取消/重置]期限
     ● 移除[報名/取消]期限
 
@@ -211,11 +212,14 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     ● [8位日期] [開冷氣/關冷氣]
 
     【 成員維護 】
-    ● 查詢季打 / 增加季打 / 移除季打
+    ● 查詢季打 ➜ 顯示季打名單
+    增加季打 ↵ 性別 ↵ 姓名
+    移除季打 ↵ 性別 ↵ 姓名
     ● 修改季打成員名稱 ↵ 舊名 ↵ 新名
 
     【 手動報名干預 】
-    ● 增加報名 / 取消報名 ↵ 性別 ↵ 姓名
+    ● 增加報名 ↵ 性別 ↵ 姓名
+    ● 取消報名 ↵ 性別 ↵ 姓名
 ┗━━━━━━━━━━━━┛";
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
                     continue;
