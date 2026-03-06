@@ -27,7 +27,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     context.Request.EnableBuffering();
     context.Request.Headers.TryGetValue("X-Line-Signature", out var signatureHeader);
     string signature = signatureHeader.ToString() ?? string.Empty;
-    using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
+    using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true); 
     var body = await reader.ReadToEndAsync();
     context.Request.Body.Position = 0;
 
@@ -64,7 +64,17 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             if (userMessage == "我的ID")
             {
                 string status = data.WhiteList.ContainsKey(userId) ? $"已綁定：{data.WhiteList[userId]}" : "尚未綁定";
-                await lineClient.ReplyMessageAsync(replyToken, $"您的 LINE ID：\n{userId}\n\n目前狀態：{status}");
+                
+                // 構造回覆訊息，明確加入群組 ID (groupId)
+                var sb = new StringBuilder();
+                sb.AppendLine("🆔 身份識別資訊");
+                sb.AppendLine("------------------");
+                sb.AppendLine($"● 您的個人 ID：\n{userId}");
+                sb.AppendLine($"● 目前群組 ID：\n{groupId}"); // 這裡就是捷徑需要的 groupId
+                sb.AppendLine("------------------");
+                sb.AppendLine($"● 綁定狀態：{status}");
+                
+                await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
                 continue;
             }
 
@@ -444,8 +454,16 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 });
 
 app.MapGet("/api/notes", (string groupId, VolleyManager manager) => { 
+    // 1. 根據捷徑傳來的 groupId，去 GroupsData 資料夾找對應的 .json 檔案
     var data = manager.Load(groupId);
-    return Results.Text(data.GetIPhoneNoteFormat()); 
+    
+    // 2. 如果檔案不存在，回傳提示文字
+    if (string.IsNullOrEmpty(data.GasUrl)) {
+        return Results.Text("該群組尚未初始化資料", "text/plain", Encoding.UTF8);
+    }
+
+    // 3. 呼叫該群組資料物件裡面的格式化方法
+    return Results.Text(data.GetIPhoneNoteFormat(), "text/plain", Encoding.UTF8); 
 });
 app.Run();
 #endregion
@@ -626,16 +644,73 @@ public class VolleyData
         DateTime finalDeadline = deadlineDate.AddHours(h).AddMinutes(m);
         return now > finalDeadline;
     }
-    public string GetIPhoneNoteFormat() { 
-        DateTime now = DateTime.Now; int diffToFriday = (int)DayOfWeek.Friday - (int)now.DayOfWeek;
-        DateTime targetFriday = now.AddDays(diffToFriday).Date;
-        int diffToReset = (int)ResetDay - (int)now.DayOfWeek;
-        DateTime resetDeadline = now.AddDays(diffToReset).Date.AddHours(ResetHour).AddMinutes(ResetMinute);
-        if (now >= resetDeadline) targetFriday = targetFriday.AddDays(7);
-        var sb = new StringBuilder(); sb.AppendLine($"🏐 {targetFriday:MM/dd} 臨打收款清單"); 
-        string fullList = GetFormattedList("iPhone"); 
-        var tempPlayers = fullList.Split('\n').Where(line => line.Contains("(臨)")).Select(line => line.Split(':').Last().Trim()).ToList();
-        foreach (var p in tempPlayers) sb.AppendLine($"{p}"); return sb.ToString().Trim();
+
+    public string GetIPhoneNoteFormat()
+    {
+        // 1. 取得當前時間
+        DateTime now = DateTime.Now;
+
+        // 2. 計算「目標比賽日」：根據該群組設定的 MatchDay (例如週六)
+        // 計算距離比賽日還有幾天，若今天就是比賽日且已過重置時間，則跳到下週
+        int diffToMatchDay = ((int)this.MatchDay - (int)now.DayOfWeek + 7) % 7;
+        DateTime targetDate = now.Date.AddDays(diffToMatchDay);
+
+        // 3. 判斷是否應該顯示「下一週」的日期
+        // 邏輯：如果現在時間已經超過該群組設定的「重置期限」，代表當週已結束，捷徑應顯示下週日期
+        DateTime resetDeadline = now.Date.AddDays(((int)this.ResetDay - (int)now.DayOfWeek + 7) % 7)
+                                    .AddHours(this.ResetHour)
+                                    .AddMinutes(this.ResetMinute);
+
+        // 如果目前時間已過重置點，或者今天就是比賽日且時間已過，日期往後推 7 天
+        if (now >= resetDeadline)
+        {
+            targetDate = targetDate.AddDays(7);
+        }
+
+        // 4. 開始組合字串
+        var sb = new StringBuilder();
+        sb.AppendLine($"🏐 {targetDate:MM/dd} 臨打收款清單");
+        sb.AppendLine("------------------");
+
+        // 5. 抓取名單並過濾出「臨打」人員
+        // 呼叫原本的 GetFormattedList 取得包含 (臨) 標記的字串
+        string fullList = this.GetFormattedList("iPhone產製");
+        
+        var lines = fullList.Split('\n');
+        var tempPlayers = new List<string>();
+
+        foreach (var line in lines)
+        {
+            // 只要該行包含 "(臨)"，就代表是需要收費的臨打人員
+            if (line.Contains("(臨)"))
+            {
+                // 擷取冒號後面的名字，例如 "1 : 小明(臨)" -> "小明"
+                var parts = line.Split(':');
+                if (parts.Length > 1)
+                {
+                    string name = parts[1].Replace("(臨)", "").Replace("(男)", "").Replace("(女)", "").Trim();
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        tempPlayers.Add(name);
+                    }
+                }
+            }
+        }
+
+        // 6. 輸出結果
+        if (tempPlayers.Count == 0)
+        {
+            sb.AppendLine("(目前無臨打人員)");
+        }
+        else
+        {
+            foreach (var p in tempPlayers)
+            {
+                sb.AppendLine(p);
+            }
+        }
+
+        return sb.ToString().Trim();
     }
 }
 
@@ -662,7 +737,7 @@ public class ResetTaskService : BackgroundService {
 }
 
 public class VolleyManager {
-    private readonly string _path = "GroupsData";
+    private readonly string _path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
     public VolleyManager() { if (!Directory.Exists(_path)) Directory.CreateDirectory(_path); }
     public VolleyData Load(string id) {
         string f = Path.Combine(_path, $"{id}.json");
