@@ -213,7 +213,10 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     【 賽季與期限設定 】
     ● 設定季打時間並創建新表格
     開始日 ↵ 結束日 ↵ 星期 ↵ 時間
-    ● 設定[報名/取消/重置]期限
+    ● 設定重置時間
+    重置星期 ↵ 重置時間
+    ● 設定[報名/取消]期限
+    星期 ↵ 時間
     ● 移除[報名/取消]期限
 
     【 費用與日期控制 】
@@ -298,7 +301,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     continue;
                 }
 
-                if (cmd == "設定重置" || cmd == "設定報名期限" || cmd == "設定取消期限")
+                if (cmd == "設定重置時間" || cmd == "設定報名期限" || cmd == "設定取消期限")
                 {
                     if (lines.Count >= 3 && Enum.TryParse<DayOfWeek>(lines[1], true, out var day))
                     {
