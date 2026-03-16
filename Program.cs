@@ -108,7 +108,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "設定雲端網址" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "設定雲端網址", "查詢現有管理員", "查詢已授權群組" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
