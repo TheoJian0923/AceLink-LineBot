@@ -54,12 +54,37 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string replyToken = ev.replyToken;
             string userMessage = (ev.message?.text ?? "").ToString().Replace("　", " ").Trim();
             string userId = ev.source?.userId ?? "";
-            var adminList = new HashSet<string> { 
-                "U4ae0a4b6b86b73455ca52ccab9ebc652", // Theo
-                "U5b9e1a119b4fbdf57efadd12644e33ed"  // 阿平
-            };            
-            bool isAdmin = adminList.Contains(userId);
+            string developerId = "U4ae0a4b6b86b73455ca52ccab9ebc652";
+            
+            // 身份判定邏輯
+            bool isDeveloper = (userId == "U4ae0a4b6b86b73455ca52ccab9ebc652");
+            bool isAdmin = isDeveloper || data.Admins.Contains(userId);
+
             if (string.IsNullOrEmpty(userMessage)) continue;
+
+            // 1. [PlanA] 授權檢查邏輯 (排除開發者，開發者在任何地方皆可作業)
+            // 定義所有「功能性關鍵字」
+            var allCommands = new List<string> { 
+                "我的ID", "重置", "確認重置", "系統初始化", "取消設定", "確認完成", "管理員指令", 
+                "設定雲端網址", "設定季打費用", "設定冷氣費用", "設定季打時間", "設定重置時間", 
+                "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
+                "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
+                "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組"
+            };
+            
+            bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
+                                       Regex.IsMatch(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)$") ||
+                                       Regex.IsMatch(userMessage, @"^(\d{8})\s*(開冷氣|關冷氣|無開場|有開場)$");
+
+            if (isTriggeringCommand && !isDeveloper && !data.IsAuthorized)
+            {
+                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 此群組尚未經過開發者授權使用，請聯繫開發者。");
+                
+                // 主動發送消息給開發者
+                string alertMsg = $"📢 【授權申請通知】\n有用戶在未授權群組嘗試使用指令。\n群組 ID：\n{groupId}\n用戶 ID：\n{userId}\n輸入內容：{userMessage}";
+                await lineClient.PushMessageAsync(developerId, alertMsg);
+                continue;
+            }
 
             if (userMessage == "我的ID")
             {
@@ -81,9 +106,49 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             var lines = userMessage.Split('\n').Select(l => l.Trim()).ToList();
             string cmd = lines[0];
 
-            #region --- 管理員指令區 ---
-            if (isAdmin)
+            #region --- 開發者指令區 ---
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "設定雲端網址" };
+            if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
+                if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
+
+                if (cmd.StartsWith("新增管理員"))
+                {
+                    string targetId = userMessage.Replace("新增管理員", "").Trim();
+                    if (!string.IsNullOrEmpty(targetId))
+                    {
+                        data.Admins.Add(targetId);
+                        manager.Save(groupId, data);
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已將該用戶設為本群組管理員：\n{targetId}");
+                    }
+                    continue;
+                }
+
+                if (cmd.StartsWith("移除管理員"))
+                {
+                    string targetId = userMessage.Replace("移除管理員", "").Trim();
+                    if (data.Admins.Contains(targetId))
+                    {
+                        data.Admins.Remove(targetId);
+                        manager.Save(groupId, data);
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已移除該用戶之管理員權限。");
+                    }
+                    continue;
+                }
+
+                if (cmd.StartsWith("授權群組"))
+                {
+                    string targetGroup = userMessage.Replace("授權群組", "").Trim();
+                    if (!string.IsNullOrEmpty(targetGroup))
+                    {
+                        var targetData = manager.Load(targetGroup);
+                        targetData.IsAuthorized = true;
+                        manager.Save(targetGroup, targetData);
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 群組授權成功：\n{targetGroup}");
+                    }
+                    continue;
+                }
+
                 if (cmd.StartsWith("設定雲端網址"))
                 {
                     string url = userMessage.Replace("設定雲端網址", "").Trim();
@@ -91,11 +156,28 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     {
                         data.GasUrl = url;
                         manager.Save(groupId, data);
-                        await lineClient.ReplyMessageAsync(replyToken, "✅ 雲端 GAS 網址設定成功！\n現在可以進行初始化或同步了。");
+                        await lineClient.ReplyMessageAsync(replyToken, "✅ 雲端 GAS 網址設定成功！\n現在管理員可以進行初始化了。");
                     }
                     else { await lineClient.ReplyMessageAsync(replyToken, "❌ 網址格式錯誤，請輸入完整的 https://... 網址"); }
                     continue;
                 }
+            }
+            #endregion
+
+            #region --- 管理員指令區 ---
+            var adminCommands = new List<string> { 
+                "重置", "確認重置", "系統初始化", "管理員指令", "設定季打費用", "設定冷氣費用", 
+                "設定季打時間", "設定重置時間", "設定報名期限", "設定取消期限", "移除報名期限", 
+                "移除取消期限", "增加季打", "更新季打成員", "移除季打", "修改季打成員名稱", 
+                "查詢季打", "增加報名", "取消報名" 
+            };
+            bool isAdminCmd = adminCommands.Contains(cmd) || 
+                              Regex.IsMatch(userMessage, @"^(\d{8})\s*(開冷氣|關冷氣|無開場|有開場)$") ||
+                              data.SetupStep > 0 || data.ConfirmReset;
+
+            if (isAdminCmd)
+            {
+                if (!isAdmin) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限管理員使用。"); continue; }
 
                 if (cmd == "重置")
                 {
@@ -121,6 +203,11 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                 if (cmd == "系統初始化")
                 {
+                    if (string.IsNullOrEmpty(data.GasUrl))
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 您尚未設定雲端網址，請聯繫開發者進行設定。");
+                        continue;
+                    }
                     data.SetupStep = 1;
                     manager.Save(groupId, data);
                     await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/5] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
@@ -314,7 +401,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         string timeStr = lines[2].Replace(":", "");
                         if (timeStr.Length >= 3 && int.TryParse(timeStr.Substring(0, timeStr.Length - 2), out int h) && int.TryParse(timeStr.Substring(timeStr.Length - 2), out int m))
                         {
-                            if (cmd == "設定重置") { data.ResetDay = day; data.ResetHour = h; data.ResetMinute = m; }
+                            if (cmd == "設定重置時間") { data.ResetDay = day; data.ResetHour = h; data.ResetMinute = m; }
                             else if (cmd == "設定報名期限") { data.DeadlineDay = day; data.DeadlineHour = h; data.DeadlineMinute = m; }
                             else { data.CancelDeadlineDay = day; data.CancelDeadlineHour = h; data.CancelDeadlineMinute = m; }
                             manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, $"⚙️ {cmd}已更新");
@@ -485,6 +572,8 @@ public class VolleyData
     public List<string> MaleWaitingList = new(); public List<string> FemaleWaitingList = new();
     public HashSet<string> MaleQuarterly = new(); public HashSet<string> FemaleQuarterly = new();
     public Dictionary<string, string> WhiteList = new() { { "U4ae0a4b6b86b73455ca52ccab9ebc652", "Theo" } };
+    public HashSet<string> Admins = new(); // 群組管理員列表 (方案 B)
+    public bool IsAuthorized = false; // 是否已授權此群組 (PlanA)
     public int QuarterlyFee = 0; public int AcFee = 0;
     public Dictionary<string, bool> AcRecords = new();
     public Dictionary<string, bool> ClosedDates = new();
