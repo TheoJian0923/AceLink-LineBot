@@ -69,7 +69,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定雲端網址", "設定季打費用", "設定冷氣費用", "設定季打時間", "設定重置時間", 
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
-                "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組"
+                "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組",
+                "查詢現有管理員", "查詢已授權群組"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -159,6 +160,43 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         await lineClient.ReplyMessageAsync(replyToken, "✅ 雲端 GAS 網址設定成功！\n現在管理員可以進行初始化了。");
                     }
                     else { await lineClient.ReplyMessageAsync(replyToken, "❌ 網址格式錯誤，請輸入完整的 https://... 網址"); }
+                    continue;
+                }
+                if (cmd == "查詢現有管理員")
+                {
+                    var files = Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData"), "*.json");
+                    var sb = new StringBuilder("👥 全域管理員清單：\n");
+                    foreach (var file in files)
+                    {
+                        string gId = Path.GetFileNameWithoutExtension(file);
+                        var d = manager.Load(gId);
+                        if (d.Admins.Any())
+                        {
+                            sb.AppendLine($"\n📍 群組：{gId}");
+                            foreach (var admin in d.Admins) sb.AppendLine($"- {admin}");
+                        }
+                    }
+                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
+                    continue;
+                }
+
+                if (cmd == "查詢已授權群組")
+                {
+                    var files = Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData"), "*.json");
+                    var sb = new StringBuilder("🔓 已授權群組清單：\n");
+                    int count = 0;
+                    foreach (var file in files)
+                    {
+                        string gId = Path.GetFileNameWithoutExtension(file);
+                        var d = manager.Load(gId);
+                        if (d.IsAuthorized)
+                        {
+                            count++;
+                            sb.AppendLine($"{count}. {gId}");
+                        }
+                    }
+                    if (count == 0) sb.Append("(目前無授權群組)");
+                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
                     continue;
                 }
             }
