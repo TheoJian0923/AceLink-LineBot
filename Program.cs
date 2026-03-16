@@ -69,7 +69,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定雲端網址", "設定季打費用", "設定冷氣費用", "設定季打時間", "設定重置時間", 
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
-                "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組",
+                "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
                 "查詢現有管理員", "查詢已授權群組"
             };
             
@@ -108,7 +108,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "設定雲端網址", "查詢現有管理員", "查詢已授權群組" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
@@ -149,6 +149,20 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
                     continue;
                 }
+
+                if (cmd.StartsWith("移除群組授權"))
+                {
+                    string targetGroup = userMessage.Replace("移除群組授權", "").Trim();
+                    if (!string.IsNullOrEmpty(targetGroup))
+                    {
+                        var targetData = manager.Load(targetGroup);
+                        targetData.IsAuthorized = false;
+                        targetData.Admins.Clear(); // 撤銷授權時，同步清空該群組管理員
+                        manager.Save(targetGroup, targetData);
+                        await lineClient.ReplyMessageAsync(replyToken, $"🚫 已成功移除該群組授權並清空管理員名單：\n{targetGroup}");
+                    }
+                    continue;
+                }                
 
                 if (cmd.StartsWith("設定雲端網址"))
                 {
