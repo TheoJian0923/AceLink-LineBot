@@ -70,7 +70,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
                 "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組"
+                "查詢現有管理員", "查詢已授權群組", "目前設定"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -108,10 +108,33 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
+
+                if (cmd == "目前設定")
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine("⚙️ 當前群組設定參數");
+                    sb.AppendLine("------------------");
+                    sb.AppendLine($"● 授權狀態：{(data.IsAuthorized ? "已授權" : "未授權")}");
+                    sb.AppendLine($"● 管理員人數：{data.Admins.Count}");
+                    sb.AppendLine($"● 球季期間：{data.SeasonStart} ~ {data.SeasonEnd}");
+                    sb.AppendLine($"● 比賽時間：週({data.MatchDay}) {data.MatchHour:D2}:{data.MatchMinute:D2}");
+                    sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
+                    sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
+                    sb.AppendLine($"● 重置時間：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
+                    sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
+                    sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
+                    sb.AppendLine($"● 雲端網址：{(string.IsNullOrEmpty(data.GasUrl) ? "未設定" : "已設定")}");
+                    sb.AppendLine("------------------");
+                    sb.AppendLine($"● 季打男：{data.MaleQuarterly.Count} 位");
+                    sb.AppendLine($"● 季打女：{data.FemaleQuarterly.Count} 位");
+                    
+                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
+                    continue;
+                }
 
                 if (cmd.StartsWith("新增管理員"))
                 {
