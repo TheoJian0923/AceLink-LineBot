@@ -133,7 +133,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 季打男：{data.MaleQuarterly.Count} 位");
                     sb.AppendLine($"● 季打女：{data.FemaleQuarterly.Count} 位");
                     
-                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
+                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim()); 
                     continue;
                 }
 
