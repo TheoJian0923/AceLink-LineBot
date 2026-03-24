@@ -311,7 +311,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 data.MatchHour = h; data.MatchMinute = m;
                                 data.QuarterlyFee = int.Parse(lines[2]); data.AcFee = int.Parse(lines[3]);
                                 data.SetupStep = 3; manager.Save(groupId, data);
-                                await lineClient.ReplyMessageAsync(replyToken, "✅ 費用與時間已設定。\n\n[Step 3/6] 設定冷氣模式\n請輸入：\n保持開啟 或 保持關閉\n\n(此設定影響季打費用計算方式)");
+                                await lineClient.ReplyMessageAsync(replyToken, "✅ 費用與時間已設定。\n\n[Step 3/7] 設定提前收費金額\n請輸入本季預計收取的總額（例如 3000）");
                             }
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查星期與費用格式。"); }
                         continue;
