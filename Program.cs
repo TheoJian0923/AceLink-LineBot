@@ -900,11 +900,23 @@ public class ResetTaskService : BackgroundService {
                     string gId = Path.GetFileNameWithoutExtension(file);
                     var data = _manager.Load(gId);
                     if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) {
-                        data.ResetToQuarterly(); _manager.Save(gId, data); _ = data.SyncToSheets(_lineClient, gId);
+                        // 1. 執行重置邏輯
+                        data.ResetToQuarterly(); 
+                        _manager.Save(gId, data); 
+                        _ = data.SyncToSheets(_lineClient, gId);
+
+                        // 2. 主動推播重置完成訊息與當前名單
+                        string resetMsg = $"🧹 【AceLink 系統自動重置完成】\n本週比賽報名已開啟！\n\n{data.GetFormattedList("🏐 本週預設名單")}";
+                        try {
+                            await _lineClient.PushMessageAsync(gId, resetMsg);
+                        } catch (Exception ex) {
+                            Console.WriteLine($"Push reset message failed for {gId}: {ex.Message}");
+                        }
                     }
                 }
             }
-            await Task.Delay(60000, stoppingToken);
+            // 為了確保不重覆觸發，建議這裡保持 60000 (1分鐘)，但判斷式精確到分即可
+            await Task.Delay(61000, stoppingToken);
         }
     }
 }
