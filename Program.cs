@@ -464,24 +464,43 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     continue;
                 }
 
-                if (cmd == "設定季打時間" && lines.Count >= 5)
+                if (cmd == "設定季打時間" && lines.Count >= 6)
                 {
-                    data.SeasonStart = lines[1]; data.SeasonEnd = lines[2];
+                    data.SeasonStart = lines[1]; 
+                    data.SeasonEnd = lines[2];
+                    
                     if (Enum.TryParse<DayOfWeek>(lines[3], true, out var day))
                     {
                         data.MatchDay = day;
                         string timeStr = lines[4].Replace(":", "").Trim();
+                        
+                        // 解析時間 (HHmm)
                         if (timeStr.Length >= 3 && int.TryParse(timeStr.Substring(0, timeStr.Length - 2), out int h) && int.TryParse(timeStr.Substring(timeStr.Length - 2), out int m))
                         {
-                            data.MatchHour = h; data.MatchMinute = m;
+                            data.MatchHour = h; 
+                            data.MatchMinute = m;
+
+                            // --- 新增：解析預收金額 ---
+                            if (int.TryParse(lines[5], out int prepaid))
+                            {
+                                data.PrepaidFee = prepaid;
+                            }
+                            else
+                            {
+                                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 預收金額格式錯誤，請輸入數字。");
+                                continue;
+                            }
+
                             manager.Save(groupId, data); 
-                            await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成新賽季表格，這可能需要幾秒鐘，請稍候...");
+                            await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成新賽季表格（含財務預收設定），請稍候...");
+                            
                             _ = Task.Run(async () => {
                                 try {
+                                    // 這裡會觸發您新版 GAS 的 isNewSeason 邏輯，建立正確的欄位順序
                                     await data.SyncToSheets(lineClient, groupId, true);
-                                    await lineClient.PushMessageAsync(groupId, $"✅ 季度設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已同步生成。");
+                                    await lineClient.PushMessageAsync(groupId, $"✅ 季度設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n預收金額：{data.PrepaidFee} 元\n雲端表格已同步生成。");
                                 } catch {
-                                    await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網絡或 GAS 設定。");
+                                    await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網路或 GAS 設定。");
                                 }
                             });
                         }
