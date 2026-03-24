@@ -128,6 +128,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 雲端網址：{(string.IsNullOrEmpty(data.GasUrl) ? "未設定" : "已設定")}");
+                    sb.AppendLine($"● 冷氣模式：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}");
                     sb.AppendLine("------------------");
                     sb.AppendLine($"● 季打男：{data.MaleQuarterly.Count} 位");
                     sb.AppendLine($"● 季打女：{data.FemaleQuarterly.Count} 位");
@@ -285,7 +286,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
                     data.SetupStep = 1;
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/5] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
+                    await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/6] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
                     continue;
                 }
 
@@ -297,7 +298,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (lines.Count >= 2) {
                             data.SeasonStart = lines[0]; data.SeasonEnd = lines[1];
                             data.SetupStep = 2; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 球季期間已設定。\n\n[Step 2/5] 設定比賽與費用\n請輸入格式：\n星期 (英文)\n時間 (HHmm)\n季打費用\n冷氣費用\n\n範例：\nSaturday\n1900\n200\n40");
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 球季期間已設定。\n\n[Step 2/6] 設定比賽與費用\n請輸入格式：\n星期 (英文)\n時間 (HHmm)\n季打費用\n冷氣費用\n\n範例：\nSaturday\n1900\n200\n40");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請輸入球季起迄日期 (共兩行)。"); }
                         continue;
                     }
@@ -310,12 +311,21 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 data.MatchHour = h; data.MatchMinute = m;
                                 data.QuarterlyFee = int.Parse(lines[2]); data.AcFee = int.Parse(lines[3]);
                                 data.SetupStep = 3; manager.Save(groupId, data);
-                                await lineClient.ReplyMessageAsync(replyToken, "✅ 費用與時間已設定。\n\n[Step 3/5] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
+                                await lineClient.ReplyMessageAsync(replyToken, "✅ 費用與時間已設定。\n\n[Step 3/6] 設定冷氣模式\n請輸入：\n保持開啟 或 保持關閉\n\n(此設定影響季打費用計算方式)");
                             }
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查星期與費用格式。"); }
                         continue;
                     }
                     if (data.SetupStep == 3)
+                    {
+                        if (cmd == "保持開啟" || cmd == "保持關閉") {
+                            data.IsAcAlwaysOn = (cmd == "保持開啟");
+                            data.SetupStep = 4; manager.Save(groupId, data);
+                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 4/6] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
+                        } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
+                        continue;
+                    }
+                    if (data.SetupStep == 4)
                     {
                         int maleIdx = lines.IndexOf("男");
                         int femaleIdx = lines.IndexOf("女");
@@ -325,25 +335,25 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             string fNames = lines[femaleIdx + 1];
                             foreach(var n in mNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.MaleQuarterly.Add(n.Trim()); }
                             foreach(var n in fNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.FemaleQuarterly.Add(n.Trim()); }
-                            data.SetupStep = 4; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 4/5] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
+                            data.SetupStep = 5; manager.Save(groupId, data);
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 5/6] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請確保包含「男」與「女」標籤及名單。"); }
                         continue;
                     }
-                    if (data.SetupStep == 4)
+                    if (data.SetupStep == 5)
                     {
                         if (lines.Count >= 2) {
                             var p1 = lines[0].Split('/'); var p2 = lines[1].Split('/');
                             if (Enum.TryParse<DayOfWeek>(p1[0], true, out var rDay) && Enum.TryParse<DayOfWeek>(p2[0], true, out var cDay)) {
                                 data.ResetDay = rDay; data.ResetHour = int.Parse(p1[1].Substring(0, 2)); data.ResetMinute = int.Parse(p1[1].Substring(2));
                                 data.CancelDeadlineDay = cDay; data.CancelDeadlineHour = int.Parse(p2[1].Substring(0, 2)); data.CancelDeadlineMinute = int.Parse(p2[1].Substring(2));
-                                data.SetupStep = 5; manager.Save(groupId, data);
-                                await lineClient.ReplyMessageAsync(replyToken, "✅ 自動化邏輯已設定。\n\n[Step 5/5] 確認並同步\n系統將進行重置並同步至 Google Sheets。\n輸入「確認完成」以結束設定。");
+                                data.SetupStep = 6; manager.Save(groupId, data);
+                                await lineClient.ReplyMessageAsync(replyToken, "✅ 自動化邏輯已設定。\n\n[Step 6/6] 確認並同步\n系統將進行重置並同步至 Google Sheets。\n輸入「確認完成」以結束設定。");
                             }
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查日期與時間格式。"); }
                         continue;
                     }
-                    if (data.SetupStep == 5)
+                    if (data.SetupStep == 6)
                     {
                         if (cmd == "確認完成") {
                             await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成初始雲端表格與重置名單，請稍候...");
@@ -531,6 +541,13 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     else { string resMsg = data.RemovePlayer(pName, 1, false, gender); manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId); await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList($"✅ 已手動取消：{pName} ({gender})")); }
                     continue;
                 }
+                if (cmd.StartsWith("設定冷氣模式"))
+                {
+                    data.IsAcAlwaysOn = userMessage.Contains("保持開啟");
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}\n(此設定將套用於後續費用計算)");
+                    continue;
+                }
             }
             #endregion
 
@@ -659,6 +676,7 @@ public class VolleyData
     public string SeasonStart = ""; public string SeasonEnd = "";
     public int SetupStep = 0;
     public string GasUrl = "";
+    public bool IsAcAlwaysOn = false;
     [JsonIgnore] public bool ConfirmReset = false;
 
     public void Save() { } 
@@ -793,7 +811,9 @@ public class VolleyData
             isClosed = ClosedDates.GetValueOrDefault(dKey, false), 
             quarterlyFee = QuarterlyFee, 
             acFee = AcFee,
-            isFuture = isFuture // 新增此旗標
+            isFuture = isFuture,
+            isAcAlwaysOn = IsAcAlwaysOn,
+            headerOrder = new[] { "姓名", "總費用", "請假次數", "開冷氣次數", "關冷氣次數" }
         };    
         using var client = new HttpClient();
         try { await client.PostAsync(GasUrl, new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json")); } catch { }
