@@ -843,14 +843,17 @@ public class VolleyData
             matchDate = targetDate.ToString("yyyy/MM/dd"), 
             currentParticipants = finalParticipants, 
             quarterlyMembers = MaleQuarterly.Concat(FemaleQuarterly).ToList(), 
-            isAcOn = effectiveAcOn, // 傳送最終判定後的結果
+            isAcOn = effectiveAcOn, 
             isClosed = ClosedDates.GetValueOrDefault(dKey, false), 
             quarterlyFee = QuarterlyFee, 
             acFee = AcFee,
+            // 【關鍵修正 1】：新增傳送預收金額，名稱必須與 GAS 接收端一致
+            prepaidFee = this.PrepaidFee, 
             isFuture = isFuture,
-            isAcAlwaysOn = IsAcAlwaysOn, // 仍保留此欄位供 GAS 參考（選填）
-            headerOrder = new[] { "姓名", "總費用", "請假次數", "開冷氣次數", "關冷氣次數" }
-        };    
+            isAcAlwaysOn = IsAcAlwaysOn, 
+            // 【關鍵修正 2】：更新標題順序，確保 GAS 繪製表格正確
+            headerOrder = new[] { "姓名", "提前收費金額", "應收總額", "退費", "請假次數" }
+        };
         using var client = new HttpClient();
         try { await client.PostAsync(GasUrl, new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json")); } catch { }
     }
