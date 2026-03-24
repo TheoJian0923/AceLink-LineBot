@@ -796,8 +796,13 @@ public class VolleyData
             ? new DateTime(int.Parse(targetDateKey.Substring(0,4)), int.Parse(targetDateKey.Substring(4,2)), int.Parse(targetDateKey.Substring(6,2))) : nextMatchDate;
         var finalParticipants = (targetDate.Date == nextMatchDate.Date) ? MaleParticipants.Concat(FemaleParticipants).ToList() : new List<string>();
         string dKey = targetDate.ToString("yyyyMMdd");
-        // 計算是否為未來場次 (大於下一次比賽日)
+        
+        // 計算是否為未來場次
         bool isFuture = targetDate.Date > nextMatchDate.Date;
+
+        // --- 核心邏輯修改：手動指令覆蓋全域模式 ---
+        // 如果 AcRecords 裡有這一天的紀錄，就用紀錄值；若無紀錄，才套用 IsAcAlwaysOn
+        bool effectiveAcOn = AcRecords.ContainsKey(dKey) ? AcRecords[dKey] : IsAcAlwaysOn;
 
         var payload = new { 
             isNewSeason = isNewSeason, 
@@ -807,12 +812,12 @@ public class VolleyData
             matchDate = targetDate.ToString("yyyy/MM/dd"), 
             currentParticipants = finalParticipants, 
             quarterlyMembers = MaleQuarterly.Concat(FemaleQuarterly).ToList(), 
-            isAcOn = AcRecords.GetValueOrDefault(dKey, false), 
+            isAcOn = effectiveAcOn, // 傳送最終判定後的結果
             isClosed = ClosedDates.GetValueOrDefault(dKey, false), 
             quarterlyFee = QuarterlyFee, 
             acFee = AcFee,
             isFuture = isFuture,
-            isAcAlwaysOn = IsAcAlwaysOn,
+            isAcAlwaysOn = IsAcAlwaysOn, // 仍保留此欄位供 GAS 參考（選填）
             headerOrder = new[] { "姓名", "總費用", "請假次數", "開冷氣次數", "關冷氣次數" }
         };    
         using var client = new HttpClient();
