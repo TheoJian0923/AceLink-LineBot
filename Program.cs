@@ -330,7 +330,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     {
                         if (cmd == "保持開啟" || cmd == "保持關閉") {
                             data.IsAcAlwaysOn = (cmd == "保持開啟");
-                            data.SetupStep = 4; manager.Save(groupId, data);
+                            data.SetupStep = 5; manager.Save(groupId, data);
                             await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 4/6] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
                         continue;
@@ -345,7 +345,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             string fNames = lines[femaleIdx + 1];
                             foreach(var n in mNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.MaleQuarterly.Add(n.Trim()); }
                             foreach(var n in fNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.FemaleQuarterly.Add(n.Trim()); }
-                            data.SetupStep = 5; manager.Save(groupId, data);
+                            data.SetupStep = 6; manager.Save(groupId, data);
                             await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 5/6] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請確保包含「男」與「女」標籤及名單。"); }
                         continue;
@@ -357,7 +357,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             if (Enum.TryParse<DayOfWeek>(p1[0], true, out var rDay) && Enum.TryParse<DayOfWeek>(p2[0], true, out var cDay)) {
                                 data.ResetDay = rDay; data.ResetHour = int.Parse(p1[1].Substring(0, 2)); data.ResetMinute = int.Parse(p1[1].Substring(2));
                                 data.CancelDeadlineDay = cDay; data.CancelDeadlineHour = int.Parse(p2[1].Substring(0, 2)); data.CancelDeadlineMinute = int.Parse(p2[1].Substring(2));
-                                data.SetupStep = 6; manager.Save(groupId, data);
+                                data.SetupStep = 7; manager.Save(groupId, data);
                                 await lineClient.ReplyMessageAsync(replyToken, "✅ 自動化邏輯已設定。\n\n[Step 6/6] 確認並同步\n系統將進行重置並同步至 Google Sheets。\n輸入「確認完成」以結束設定。");
                             }
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查日期與時間格式。"); }
