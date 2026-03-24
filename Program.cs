@@ -316,7 +316,17 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查星期與費用格式。"); }
                         continue;
                     }
-                    if (data.SetupStep == 3)
+                    if (data.SetupStep == 3) {
+                        if (int.TryParse(cmd, out int prepaid)) {
+                            data.PrepaidFee = prepaid;
+                            data.SetupStep = 4; manager.Save(groupId, data);
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 提前收費已設定。\n\n[Step 4/7] 設定冷氣模式\n請輸入：保持開啟 或 保持關閉");
+                        } else {
+                            await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入有效的數字金額。");
+                        }
+                        continue;
+                    }                    
+                    if (data.SetupStep == 4)
                     {
                         if (cmd == "保持開啟" || cmd == "保持關閉") {
                             data.IsAcAlwaysOn = (cmd == "保持開啟");
@@ -325,7 +335,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
                         continue;
                     }
-                    if (data.SetupStep == 4)
+                    if (data.SetupStep == 5)
                     {
                         int maleIdx = lines.IndexOf("男");
                         int femaleIdx = lines.IndexOf("女");
@@ -340,7 +350,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請確保包含「男」與「女」標籤及名單。"); }
                         continue;
                     }
-                    if (data.SetupStep == 5)
+                    if (data.SetupStep == 6)
                     {
                         if (lines.Count >= 2) {
                             var p1 = lines[0].Split('/'); var p2 = lines[1].Split('/');
@@ -353,7 +363,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查日期與時間格式。"); }
                         continue;
                     }
-                    if (data.SetupStep == 6)
+                    if (data.SetupStep == 7)
                     {
                         if (cmd == "確認完成") {
                             await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成初始雲端表格與重置名單，請稍候...");
@@ -676,6 +686,7 @@ public class VolleyData
     public string SeasonStart = ""; public string SeasonEnd = "";
     public int SetupStep = 0;
     public string GasUrl = "";
+    public int PrepaidFee { get; set; } = 3000;
     public bool IsAcAlwaysOn = false;
     [JsonIgnore] public bool ConfirmReset = false;
 
