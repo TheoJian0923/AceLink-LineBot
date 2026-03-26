@@ -286,7 +286,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
                     data.SetupStep = 1;
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/6] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
+                    await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/7] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
                     continue;
                 }
 
@@ -298,7 +298,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (lines.Count >= 2) {
                             data.SeasonStart = lines[0]; data.SeasonEnd = lines[1];
                             data.SetupStep = 2; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 球季期間已設定。\n\n[Step 2/6] 設定比賽與費用\n請輸入格式：\n星期 (英文)\n時間 (HHmm)\n季打費用\n冷氣費用\n\n範例：\nSaturday\n1900\n200\n40");
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 球季期間已設定。\n\n[Step 2/7] 設定比賽與費用\n請輸入格式：\n星期 (英文)\n時間 (HHmm)\n季打費用\n冷氣費用\n\n範例：\nSaturday\n1900\n200\n40");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請輸入球季起迄日期 (共兩行)。"); }
                         continue;
                     }
@@ -331,7 +331,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (cmd == "保持開啟" || cmd == "保持關閉") {
                             data.IsAcAlwaysOn = (cmd == "保持開啟");
                             data.SetupStep = 5; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 4/6] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
+                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 5/7] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
                         continue;
                     }
@@ -346,7 +346,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             foreach(var n in mNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.MaleQuarterly.Add(n.Trim()); }
                             foreach(var n in fNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.FemaleQuarterly.Add(n.Trim()); }
                             data.SetupStep = 6; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 5/6] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 6/7] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請確保包含「男」與「女」標籤及名單。"); }
                         continue;
                     }
@@ -354,30 +354,77 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     {
                         if (lines.Count >= 2) {
                             var p1 = lines[0].Split('/'); var p2 = lines[1].Split('/');
-                            if (Enum.TryParse<DayOfWeek>(p1[0], true, out var rDay) && Enum.TryParse<DayOfWeek>(p2[0], true, out var cDay)) {
+                            if (p1.Length == 2 && p2.Length == 2 && Enum.TryParse<DayOfWeek>(p1[0], true, out var rDay) && Enum.TryParse<DayOfWeek>(p2[0], true, out var cDay)) {
                                 data.ResetDay = rDay; data.ResetHour = int.Parse(p1[1].Substring(0, 2)); data.ResetMinute = int.Parse(p1[1].Substring(2));
                                 data.CancelDeadlineDay = cDay; data.CancelDeadlineHour = int.Parse(p2[1].Substring(0, 2)); data.CancelDeadlineMinute = int.Parse(p2[1].Substring(2));
+                                
                                 data.SetupStep = 7; manager.Save(groupId, data);
-                                await lineClient.ReplyMessageAsync(replyToken, "✅ 自動化邏輯已設定。\n\n[Step 6/6] 確認並同步\n系統將進行重置並同步至 Google Sheets。\n輸入「確認完成」以結束設定。");
+
+                                // --- 構造摘要訊息 ---
+                                var sb = new StringBuilder("📝 【請確認新賽季設定】\n");
+                                sb.AppendLine("------------------");
+                                sb.AppendLine($"📅 賽季：{data.SeasonStart} ~ {data.SeasonEnd}");
+                                sb.AppendLine($"⏰ 比賽：週({data.MatchDay}) {data.MatchHour:D2}:{data.MatchMinute:D2}");
+                                sb.AppendLine($"💰 費用：季打 {data.QuarterlyFee} / 冷氣 {data.AcFee}");
+                                sb.AppendLine($"💵 預收：{data.PrepaidFee} 元");
+                                sb.AppendLine($"❄️ 冷氣：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}");
+                                sb.AppendLine($"👥 季打人數：男 {data.MaleQuarterly.Count} / 女 {data.FemaleQuarterly.Count}");
+                                sb.AppendLine($"🔄 自動重置：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
+                                sb.AppendLine($"🚫 取消截止：週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}");
+                                sb.AppendLine("------------------");
+                                sb.AppendLine("✅ 若資料正確，請輸入「確認完成」");
+                                sb.AppendLine("❌ 若有誤，請輸入「取消設定」並重新開始");
+
+                                await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
                             }
-                        } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查日期與時間格式。"); }
+                        } else {
+                            await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查日期與時間格式。");
+                        }
                         continue;
                     }
                     if (data.SetupStep == 7)
                     {
-                        if (cmd == "確認完成") {
-                            await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成初始雲端表格與重置名單，請稍候...");
+                        // 如果使用者在摘要頁面選擇取消
+                        if (cmd == "取消設定" || cmd == "取消") 
+                        {
+                            data.SetupStep = 0; 
+                            manager.Save(groupId, data); 
+                            await lineClient.ReplyMessageAsync(replyToken, "❌ 已取消初始化，所有變更均未生效。");
+                            continue;
+                        }
+
+                        if (cmd == "確認完成") 
+                        {
+                            // 1. 先給予即時回覆，避免 LINE 逾時
+                            await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在啟動新賽季：\n1. 重置球員名單\n2. 生成雲端對帳表\n\n這可能需要 5-10 秒，請稍候...");
+
+                            // 2. 異步執行重度任務
                             _ = Task.Run(async () => {
                                 try {
+                                    // 重要：先歸零步驟，防止重複觸發
                                     data.SetupStep = 0; 
+                                    
+                                    // 重置名單（恢復季打，清空候補與關場紀錄）
                                     data.ResetToQuarterly(); 
+                                    
+                                    // 存檔
                                     manager.Save(groupId, data); 
+                                    
+                                    // 呼叫 GAS 同步 (isNewSeason = true)
                                     await data.SyncToSheets(lineClient, groupId, true);
-                                    await lineClient.PushMessageAsync(groupId, "🎊 系統初始化完成！\n季打名單已恢復，且雲端表格已同步生成。");
-                                } catch {
-                                    await lineClient.PushMessageAsync(groupId, "❌ 系統初始化成功但雲端同步失敗，請檢查 GAS 設定。");
+                                    
+                                    // 最後推播成功訊息
+                                    await lineClient.PushMessageAsync(groupId, "🎊 【新賽季啟動成功！】\n✅ 雲端試算表已更新標題與預收金額。\n✅ 名單已重置為本季季打成員。\n祝本季打球愉快！");
+                                } catch (Exception ex) {
+                                    // 錯誤處理
+                                    await lineClient.PushMessageAsync(groupId, $"❌ 系統初始化過程中發生錯誤：{ex.Message}\n請檢查 GAS 網址或網路狀態。");
                                 }
                             });
+                        }
+                        else 
+                        {
+                            // 如果輸入的不是「確認完成」也不是「取消」，提醒使用者
+                            await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「確認完成」以啟動新賽季，或輸入「取消設定」退出。");
                         }
                         continue;
                     }
