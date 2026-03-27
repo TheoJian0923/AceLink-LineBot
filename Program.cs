@@ -4,7 +4,6 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Linq; 
 using System.Text.RegularExpressions; 
-using var httpClient = new HttpClient();
 
 var builder = WebApplication.CreateBuilder(args);
 
