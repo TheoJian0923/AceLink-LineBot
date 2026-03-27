@@ -841,17 +841,7 @@ public class VolleyData
     public List<string> MaleWaitingList = new(); public List<string> FemaleWaitingList = new();
     public HashSet<string> MaleQuarterly = new(); public HashSet<string> FemaleQuarterly = new();
     public Dictionary<string, string> WhiteList = new() { { "U4ae0a4b6b86b73455ca52ccab9ebc652", "Theo" } };
-    [JsonProperty("Admins")]
-    private object? _rawAdmins { set {
-        if (value is Newtonsoft.Json.Linq.JArray arr) {
-            // 如果讀到舊的陣列格式，自動轉換成字典
-            foreach (var item in arr) { if (item != null) Admins[item.ToString()!] = "管理員"; }
-        } else if (value is Newtonsoft.Json.Linq.JObject obj) {
-            // 如果是新的字典格式，正常讀取
-            Admins = obj.ToObject<Dictionary<string, string>>() ?? new();
-        }
-    }}
-    public Dictionary<string, string> Admins { get; set; } = new();
+    public Dictionary<string, string> Admins = new(); // Key: UserID, Value: 暱稱
     public bool IsAuthorized = false; // 是否已授權此群組 (PlanA)
     public string GroupName { get; set; } = ""; // 群組暱稱
     public int QuarterlyFee = 0; public int AcFee = 0;
