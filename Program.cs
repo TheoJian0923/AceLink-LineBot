@@ -841,7 +841,8 @@ public class VolleyData
     public List<string> MaleWaitingList = new(); public List<string> FemaleWaitingList = new();
     public HashSet<string> MaleQuarterly = new(); public HashSet<string> FemaleQuarterly = new();
     public Dictionary<string, string> WhiteList = new() { { "U4ae0a4b6b86b73455ca52ccab9ebc652", "Theo" } };
-    public Dictionary<string, string> Admins = new(); // Key: UserID, Value: 暱稱
+    private Dictionary<string, string> _admins = new();
+    public Dictionary<string, string> Admins { get => _admins; set => _admins = value ?? new(); }
     public bool IsAuthorized = false; // 是否已授權此群組 (PlanA)
     public string GroupName { get; set; } = ""; // 群組暱稱
     public int QuarterlyFee = 0; public int AcFee = 0;
@@ -858,9 +859,6 @@ public class VolleyData
     public bool IsAcAlwaysOn = false;
     [JsonIgnore] public bool ConfirmReset = false;
     public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
-
-    public void Save() { } 
-    public static VolleyData Load() => new VolleyData();
 
     public string GetFormattedList(string title)
     {
