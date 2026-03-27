@@ -154,7 +154,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 }
 
                 if (cmd.StartsWith("移除管理員"))
-                {
+                { 
                     string targetId = userMessage.Replace("移除管理員", "").Trim();
                     if (data.Admins.ContainsKey(targetId))
                     {
