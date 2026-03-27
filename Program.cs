@@ -688,7 +688,43 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 }
                 else
                 {
-                    var mDate = DateTime.Now.Date.AddDays(((int)data.MatchDay - (int)DateTime.Now.DayOfWeek + 7) % 7);
+                    // 1. 取得台灣目前時間 (避免伺服器在國外導致日期錯誤)
+                    var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+
+                    // 2. 計算最近的一個比賽日 (mDate)
+                    int diffToMatch = ((int)data.MatchDay - (int)now.DayOfWeek + 7) % 7;
+                    var mDate = now.Date.AddDays(diffToMatch);
+
+                    // 如果今天就是比賽日，且已經過了開賽時間，目標日應跳到「下週」
+                    if (diffToMatch == 0 && now.Hour >= data.MatchHour) 
+                    {
+                        mDate = mDate.AddDays(7);
+                    }
+
+                    // 2. 🚩 [核心邏輯改動]：如果這個日期還沒到新賽季，自動「校準」到新賽季首戰
+                    if (!string.IsNullOrEmpty(data.SeasonStart))
+                    {
+                        DateTime sStart = DateTime.ParseExact(data.SeasonStart, "yyyyMMdd", null);
+                        
+                        // 如果一般的下場比賽日還沒到開賽日，直接強制跳到開賽日之後的第一場
+                        if (mDate < sStart.Date)
+                        {
+                            int diffToStart = ((int)data.MatchDay - (int)sStart.DayOfWeek + 7) % 7;
+                            mDate = sStart.Date.AddDays(diffToStart);
+                        }
+                    }
+
+                    // 3. 檢查是否已經超過賽季結束日 (這還是要擋，不然會報到明年去)
+                    if (!string.IsNullOrEmpty(data.SeasonEnd))
+                    {
+                        DateTime sEnd = DateTime.ParseExact(data.SeasonEnd, "yyyyMMdd", null);
+                        if (mDate > sEnd.Date)
+                        {
+                            await lineClient.ReplyMessageAsync(replyToken, "🚫 目前賽季已結束，請等待管理員更新下一季資訊。");
+                            continue;
+                        }
+                    }
+                    
                     string dateKey = mDate.ToString("yyyyMMdd");
                     if (data.ClosedDates.ContainsKey(dateKey) && data.ClosedDates[dateKey])
                     {
@@ -908,23 +944,60 @@ public class VolleyData
         return warn ? $"{n}您好，因過取消期限若無遞補仍需繳費" : $"❌ {n} 已取消 {g} {rem}位";
     }
 
-    public async Task SyncToSheets(ILineMessagingClient lineClient, string groupId, bool isNewSeason = false, string? targetDateKey = null) {
+    public async Task SyncToSheets(ILineMessagingClient lineClient, string groupId, bool isNewSeason = false, string? targetDateKey = null) 
+    {
+        // 1. 安全檢查：確保有 GAS 網址
         if (string.IsNullOrEmpty(GasUrl)) {
             await lineClient.PushMessageAsync(groupId, "⚠️ 您好！您的機器人尚未做初始化設定，請輸入「系統初始化」讓我來引導你完成！\n(請先由管理員設定雲端網址)");
             return;
         }
-        int nextMatchDiff = ((int)MatchDay - (int)DateTime.Now.DayOfWeek + 7) % 7;
-        DateTime nextMatchDate = DateTime.Now.Date.AddDays(nextMatchDiff);
-        DateTime targetDate = (!string.IsNullOrEmpty(targetDateKey) && targetDateKey.Length == 8) 
-            ? new DateTime(int.Parse(targetDateKey.Substring(0,4)), int.Parse(targetDateKey.Substring(4,2)), int.Parse(targetDateKey.Substring(6,2))) : nextMatchDate;
-        var finalParticipants = (targetDate.Date == nextMatchDate.Date) ? MaleParticipants.Concat(FemaleParticipants).ToList() : new List<string>();
+
+        // 取得台灣當前時間
+        var nowUtc = DateTime.UtcNow;
+        var taiwanZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, taiwanZone);
+        
+        DateTime targetDate;
+
+        // --- 核心日期判定邏輯 (賽季接力模式) ---
+
+        // 情況 A：手動指定日期 (例如：點擊開關冷氣選單傳入的 20260327)
+        if (!string.IsNullOrEmpty(targetDateKey) && targetDateKey.Length == 8) {
+            targetDate = DateTime.ParseExact(targetDateKey, "yyyyMMdd", null);
+        }
+        // 情況 B：啟動新賽季 (isNewSeason = true)
+        else if (isNewSeason) {
+            // 💡 關鍵：不看「今天」，直接從「新賽季開始日」往後找第一個比賽星期幾
+            DateTime start = DateTime.ParseExact(SeasonStart, "yyyyMMdd", null);
+            int diff = ((int)MatchDay - (int)start.DayOfWeek + 7) % 7;
+            targetDate = start.AddDays(diff);
+        }
+        // 情況 C：一般日常報名同步
+        else {
+            int nextMatchDiff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
+            targetDate = now.Date.AddDays(nextMatchDiff);
+
+            // 如果今天就是比賽日，且已經過了開賽時間，自動跳到「下週五」
+            if (nextMatchDiff == 0 && now.Hour >= MatchHour) {
+                targetDate = targetDate.AddDays(7);
+            }
+        }
+
+        // --- 準備傳送給 GAS 的資料 ---
+
         string dKey = targetDate.ToString("yyyyMMdd");
         
-        // 計算是否為未來場次
-        bool isFuture = targetDate.Date > nextMatchDate.Date;
+        // 判定名單：只有當目標日期是「最近的一個比賽日」時，才同步目前的報名清單
+        // 若 targetDate 是遙遠的未來(指定日期)，則傳空清單，避免 GAS 誤填
+        int currentMatchDiff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
+        DateTime nextDefaultMatch = now.Date.AddDays(currentMatchDiff);
+        if (currentMatchDiff == 0 && now.Hour >= MatchHour) nextDefaultMatch = nextDefaultMatch.AddDays(7);
 
-        // --- 核心邏輯修改：手動指令覆蓋全域模式 ---
-        // 如果 AcRecords 裡有這一天的紀錄，就用紀錄值；若無紀錄，才套用 IsAcAlwaysOn
+        var finalParticipants = (targetDate.Date == nextDefaultMatch.Date) 
+            ? MaleParticipants.Concat(FemaleParticipants).ToList() 
+            : new List<string>();
+
+        // 判定冷氣狀態：優先看手動紀錄，再看全域設定
         bool effectiveAcOn = AcRecords.ContainsKey(dKey) ? AcRecords[dKey] : IsAcAlwaysOn;
 
         var payload = new { 
@@ -939,15 +1012,21 @@ public class VolleyData
             isClosed = ClosedDates.GetValueOrDefault(dKey, false), 
             quarterlyFee = QuarterlyFee, 
             acFee = AcFee,
-            // 【關鍵修正 1】：新增傳送預收金額，名稱必須與 GAS 接收端一致
             prepaidFee = this.PrepaidFee, 
-            isFuture = isFuture,
+            isFuture = targetDate.Date > nextDefaultMatch.Date,
             isAcAlwaysOn = IsAcAlwaysOn, 
-            // 【關鍵修正 2】：更新標題順序，確保 GAS 繪製表格正確
             headerOrder = new[] { "姓名", "提前收費金額", "應收總額", "退費", "請假次數" }
         };
+
+        // --- 執行網路傳輸 ---
         using var client = new HttpClient();
-        try { await client.PostAsync(GasUrl, new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json")); } catch { }
+        try { 
+            var json = JsonConvert.SerializeObject(payload);
+            await client.PostAsync(GasUrl, new StringContent(json, Encoding.UTF8, "application/json")); 
+        } 
+        catch (Exception ex) {
+            Console.WriteLine($"GAS Sync Error: {ex.Message}");
+        }
     }
 
     public void ResetToQuarterly() {
