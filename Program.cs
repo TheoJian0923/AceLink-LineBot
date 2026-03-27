@@ -762,8 +762,9 @@ public class VolleyData
 
     public string GetFormattedList(string title)
     {
-        int diff = ((int)MatchDay - (int)DateTime.Now.DayOfWeek + 7) % 7;
-        var mDate = DateTime.Now.Date.AddDays(diff);
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+        int diff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
+        var mDate = now.Date.AddDays(diff);
         var sb = new StringBuilder();
         sb.AppendLine($"📅 {mDate:yyyy/MM/dd} ({GetDayString(mDate.DayOfWeek)})");
         sb.AppendLine(title + "\n------------------");
@@ -914,7 +915,9 @@ public class VolleyData
     public bool IsDeadlinePassed(DayOfWeek? targetDay, int h, int m)
     {
         if (!targetDay.HasValue) return false;
-        var now = DateTime.Now;
+        var nowUtc = DateTime.UtcNow;
+        var taiwanZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, taiwanZone);
         int diffToMatch = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
         if (diffToMatch == 0 && (now.Hour > MatchHour || (now.Hour == MatchHour && now.Minute >= MatchMinute))) diffToMatch = 7;
         DateTime nextMatchDate = now.Date.AddDays(diffToMatch);
@@ -927,7 +930,8 @@ public class VolleyData
     public string GetIPhoneNoteFormat()
     {
         // 1. 取得當前時間
-        DateTime now = DateTime.Now;
+        // 在方法內的第一行加入
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
 
         // 2. 計算「目標比賽日」：根據該群組設定的 MatchDay (例如週六)
         // 計算距離比賽日還有幾天，若今天就是比賽日且已過重置時間，則跳到下週
@@ -999,7 +1003,9 @@ public class ResetTaskService : BackgroundService {
     public ResetTaskService(VolleyManager manager, ILineMessagingClient lineClient) { _manager = manager; _lineClient = lineClient; }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
         while (!stoppingToken.IsCancellationRequested) {
-            var now = DateTime.Now;
+            var nowUtc = DateTime.UtcNow;
+            var taiwanZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+            var now = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, taiwanZone);
             if (Directory.Exists("GroupsData")) {
                 var files = Directory.GetFiles("GroupsData", "*.json");
                 foreach (var file in files) {
