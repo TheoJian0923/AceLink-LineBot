@@ -864,6 +864,20 @@ public class VolleyData
         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
         int diff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
         var mDate = now.Date.AddDays(diff);
+        // 如果今天就是比賽日且已過時間，跳下週
+        if (diff == 0 && now.Hour >= MatchHour) mDate = mDate.AddDays(7);
+
+        // 🚩 [新增校準]：若計算出的日期早於球季開始日，強制對齊球季首日
+        if (!string.IsNullOrEmpty(SeasonStart))
+        {
+            DateTime sStart = DateTime.ParseExact(SeasonStart, "yyyyMMdd", null);
+            if (mDate < sStart.Date)
+            {
+                int diffToStart = ((int)MatchDay - (int)sStart.DayOfWeek + 7) % 7;
+                mDate = sStart.Date.AddDays(diffToStart);
+            }
+        }       
+         
         var sb = new StringBuilder();
         sb.AppendLine($"📅 {mDate:yyyy/MM/dd} ({GetDayString(mDate.DayOfWeek)})");
         sb.AppendLine(title + "\n------------------");
