@@ -412,6 +412,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                     
                                     // 呼叫 GAS 同步 (isNewSeason = true)
                                     await data.SyncToSheets(lineClient, groupId, true);
+
+                                    data.IsRecentlyReset = true;//防止下次重置影響名單
                                     
                                     // 最後推播成功訊息
                                     await lineClient.PushMessageAsync(groupId, "🎊 【新賽季啟動成功！】\n✅ 雲端試算表已更新標題與預收金額。\n✅ 名單已重置為本季季打成員。\n祝本季打球愉快！");
@@ -514,6 +516,48 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                 if (cmd == "設定季打時間" && lines.Count >= 6)
                 {
+                    var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+                    bool isForce = userMessage.Contains("強制更新");
+
+                    if (!string.IsNullOrEmpty(data.SeasonEnd)) 
+                    {
+                        DateTime oldEnd = DateTime.ParseExact(data.SeasonEnd, "yyyyMMdd", null);
+                        
+                        // 核心邏輯：判定是否需要跳出警告
+                        bool needsWarning = false;
+
+                        // 1. 如果「今天」還沒到結束日 -> 需要警告
+                        if (now.Date < oldEnd.Date) 
+                        {
+                            needsWarning = true;
+                        }
+                        // 2. 如果「今天」剛好是結束日，但「比賽時間」還沒到 -> 需要警告
+                        else if (now.Date == oldEnd.Date)
+                        {
+                            // 建立一個當天比賽開始的精確時間物件
+                            DateTime lastMatchStartTime = oldEnd.Date.AddHours(data.MatchHour).AddMinutes(data.MatchMinute);
+                            if (now < lastMatchStartTime) 
+                            {
+                                needsWarning = true;
+                            }
+                        }
+
+                        // 觸發警告（除非主揪已經輸入強制更新）
+                        if (needsWarning && !isForce) 
+                        {
+                            var sbWarn = new StringBuilder();
+                            sbWarn.AppendLine("⚠️ 【賽季尚未正式結束】");
+                            sbWarn.AppendLine($"本季最後一場球賽預計於今日 {data.MatchHour:D2}:{data.MatchMinute:D2} 開始。");
+                            sbWarn.AppendLine("現在更換賽季會封存目前的對帳表不再被更新。");
+                            sbWarn.AppendLine("------------------");
+                            sbWarn.AppendLine("💡 建議於球賽開始後再設定，或在指令最後加上「強制更新」四個字。");
+                            
+                            await lineClient.ReplyMessageAsync(replyToken, sbWarn.ToString().Trim());
+                            continue; 
+                        }
+                    }
+
+                    // --- 通過檢查後，執行原本的換季邏輯 ---
                     data.SeasonStart = lines[1]; 
                     data.SeasonEnd = lines[2];
                     
@@ -522,35 +566,34 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         data.MatchDay = day;
                         string timeStr = lines[4].Replace(":", "").Trim();
                         
-                        // 解析時間 (HHmm)
                         if (timeStr.Length >= 3 && int.TryParse(timeStr.Substring(0, timeStr.Length - 2), out int h) && int.TryParse(timeStr.Substring(timeStr.Length - 2), out int m))
                         {
                             data.MatchHour = h; 
                             data.MatchMinute = m;
 
-                            // --- 新增：解析預收金額 ---
                             if (int.TryParse(lines[5], out int prepaid))
                             {
                                 data.PrepaidFee = prepaid;
+                                manager.Save(groupId, data); 
+                                
+                                await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成新賽季表格，請稍候...");
+                                
+                                _ = Task.Run(async () => {
+                                    try {
+                                        // 重置名單（恢復季打，清空候補）
+                                        data.ResetToQuarterly(); 
+                                        data.IsRecentlyReset = true;
+                                        manager.Save(groupId, data);
+                                        
+                                        // 呼叫 GAS 同步 (isNewSeason = true)
+                                        await data.SyncToSheets(lineClient, groupId, true);
+                                        
+                                        await lineClient.PushMessageAsync(groupId, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已切換至新分頁。");
+                                    } catch {
+                                        await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網路或 GAS 設定。");
+                                    }
+                                });
                             }
-                            else
-                            {
-                                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 預收金額格式錯誤，請輸入數字。");
-                                continue;
-                            }
-
-                            manager.Save(groupId, data); 
-                            await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成新賽季表格（含財務預收設定），請稍候...");
-                            
-                            _ = Task.Run(async () => {
-                                try {
-                                    // 這裡會觸發您新版 GAS 的 isNewSeason 邏輯，建立正確的欄位順序
-                                    await data.SyncToSheets(lineClient, groupId, true);
-                                    await lineClient.PushMessageAsync(groupId, $"✅ 季度設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n預收金額：{data.PrepaidFee} 元\n雲端表格已同步生成。");
-                                } catch {
-                                    await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網路或 GAS 設定。");
-                                }
-                            });
                         }
                     }
                     continue;
@@ -756,6 +799,7 @@ public class VolleyData
     public int PrepaidFee { get; set; } = 3000;
     public bool IsAcAlwaysOn = false;
     [JsonIgnore] public bool ConfirmReset = false;
+    public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
 
     public void Save() { } 
     public static VolleyData Load() => new VolleyData();
@@ -1012,6 +1056,14 @@ public class ResetTaskService : BackgroundService {
                     string gId = Path.GetFileNameWithoutExtension(file);
                     var data = _manager.Load(gId);
                     if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) {
+
+                        if (data.IsRecentlyReset) 
+                        {
+                            data.IsRecentlyReset = false; // 重設開關，讓下週能正常運作
+                            _manager.Save(gId, data);
+                            continue; // 跳過這次自動重置
+                        }
+
                         // 1. 執行重置邏輯
                         data.ResetToQuarterly(); 
                         _manager.Save(gId, data); 
