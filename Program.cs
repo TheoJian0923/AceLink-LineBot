@@ -4,6 +4,7 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Linq; 
 using System.Text.RegularExpressions; 
+using var httpClient = new HttpClient();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +59,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             
             // 身份判定邏輯
             bool isDeveloper = (userId == "U4ae0a4b6b86b73455ca52ccab9ebc652");
-            bool isAdmin = isDeveloper || data.Admins.Contains(userId);
+            bool isAdmin = isDeveloper || data.Admins.ContainsKey(userId);
 
             if (string.IsNullOrEmpty(userMessage)) continue;
 
@@ -112,7 +113,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
-
+                
                 if (cmd == "目前設定")
                 {
                     var sb = new StringBuilder();
@@ -139,38 +140,50 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                 if (cmd.StartsWith("新增管理員"))
                 {
-                    string targetId = userMessage.Replace("新增管理員", "").Trim();
-                    if (!string.IsNullOrEmpty(targetId))
+                    var parts = userMessage.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 3)
                     {
-                        data.Admins.Add(targetId);
+                        string nickName = parts[1];
+                        string targetId = parts[2];
+                        data.Admins[targetId] = nickName;
                         manager.Save(groupId, data);
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已將該用戶設為本群組管理員：\n{targetId}");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已設為管理員：\n👤 暱稱：{nickName}\n🆔 ID：{targetId}");
                     }
+                    else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤：新增管理員 [暱稱] 使用者ID"); }
                     continue;
                 }
 
                 if (cmd.StartsWith("移除管理員"))
                 {
                     string targetId = userMessage.Replace("移除管理員", "").Trim();
-                    if (data.Admins.Contains(targetId))
+                    if (data.Admins.ContainsKey(targetId))
                     {
+                        string nickName = data.Admins[targetId];
                         data.Admins.Remove(targetId);
                         manager.Save(groupId, data);
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已移除該用戶之管理員權限。");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已移除管理員權限：\n👤 暱稱：{nickName}\n🆔 ID：{targetId}");
+                    }
+                    else 
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 移除失敗：找不到該管理員 ID。\n請確認 ID 是否正確或輸入「查詢現有管理員」確認。");
                     }
                     continue;
                 }
 
                 if (cmd.StartsWith("授權群組"))
                 {
-                    string targetGroup = userMessage.Replace("授權群組", "").Trim();
-                    if (!string.IsNullOrEmpty(targetGroup))
+                    var parts = userMessage.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 3)
                     {
+                        string gNickName = parts[1];
+                        string targetGroup = parts[2];
                         var targetData = manager.Load(targetGroup);
                         targetData.IsAuthorized = true;
+                        targetData.GroupName = gNickName;
                         manager.Save(targetGroup, targetData);
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 群組授權成功：\n{targetGroup}");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 授權群組成功：\n🏐 名稱：{gNickName}\n🆔 ID：{targetGroup}");
                     }
+                    else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤：授權群組 [暱稱] 群組ID"); }
                     continue;
                 }
 
@@ -203,15 +216,21 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd == "查詢現有管理員")
                 {
                     var files = Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData"), "*.json");
-                    var sb = new StringBuilder("👥 全域管理員清單：\n");
+                    var sb = new StringBuilder("👥 全域管理員清單\n");
+                    sb.AppendLine("━━━━━━━━━━━━━━");
                     foreach (var file in files)
                     {
                         string gId = Path.GetFileNameWithoutExtension(file);
                         var d = manager.Load(gId);
                         if (d.Admins.Any())
                         {
-                            sb.AppendLine($"\n📍 群組：{gId}");
-                            foreach (var admin in d.Admins) sb.AppendLine($"- {admin}");
+                            string gName = string.IsNullOrEmpty(d.GroupName) ? "(未命名群組)" : d.GroupName;
+                            sb.AppendLine($"📍 {gName}");
+                            foreach (var admin in d.Admins) 
+                            {
+                                sb.AppendLine($"  - {admin.Value} ({admin.Key})");
+                            }
+                            sb.AppendLine();
                         }
                     }
                     await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
@@ -221,7 +240,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd == "查詢已授權群組")
                 {
                     var files = Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData"), "*.json");
-                    var sb = new StringBuilder("🔓 已授權群組清單：\n");
+                    var sb = new StringBuilder("🔓 已授權群組清單\n");
+                    sb.AppendLine("━━━━━━━━━━━━━━");
                     int count = 0;
                     foreach (var file in files)
                     {
@@ -230,7 +250,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (d.IsAuthorized)
                         {
                             count++;
-                            sb.AppendLine($"{count}. {gId}");
+                            string gName = string.IsNullOrEmpty(d.GroupName) ? "(未命名)" : d.GroupName;
+                            sb.AppendLine($"{count}. {gName}");
+                            sb.AppendLine($"   ID: {gId}");
                         }
                     }
                     if (count == 0) sb.Append("(目前無授權群組)");
@@ -724,7 +746,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             continue;
                         }
                     }
-                    
+
                     string dateKey = mDate.ToString("yyyyMMdd");
                     if (data.ClosedDates.ContainsKey(dateKey) && data.ClosedDates[dateKey])
                     {
@@ -820,8 +842,9 @@ public class VolleyData
     public List<string> MaleWaitingList = new(); public List<string> FemaleWaitingList = new();
     public HashSet<string> MaleQuarterly = new(); public HashSet<string> FemaleQuarterly = new();
     public Dictionary<string, string> WhiteList = new() { { "U4ae0a4b6b86b73455ca52ccab9ebc652", "Theo" } };
-    public HashSet<string> Admins = new(); // 群組管理員列表 (方案 B)
+    public Dictionary<string, string> Admins = new(); // Key: UserID, Value: 暱稱
     public bool IsAuthorized = false; // 是否已授權此群組 (PlanA)
+    public string GroupName { get; set; } = ""; // 群組暱稱
     public int QuarterlyFee = 0; public int AcFee = 0;
     public Dictionary<string, bool> AcRecords = new();
     public Dictionary<string, bool> ClosedDates = new();
