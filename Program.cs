@@ -856,27 +856,28 @@ public class VolleyData
     public string GasUrl = "";
     public int PrepaidFee { get; set; } = 3000;
     public bool IsAcAlwaysOn = false;
-    [JsonIgnore] public bool ConfirmReset = false;
+    public bool ConfirmReset { get; set; } = false;
     public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
 
-    public string GetFormattedList(string title)
-    {
+    private DateTime GetNextMatchDate() {
         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
         int diff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
         var mDate = now.Date.AddDays(diff);
-        // 如果今天就是比賽日且已過時間，跳下週
         if (diff == 0 && now.Hour >= MatchHour) mDate = mDate.AddDays(7);
 
-        // 🚩 [新增校準]：若計算出的日期早於球季開始日，強制對齊球季首日
-        if (!string.IsNullOrEmpty(SeasonStart))
-        {
+        if (!string.IsNullOrEmpty(SeasonStart)) {
             DateTime sStart = DateTime.ParseExact(SeasonStart, "yyyyMMdd", null);
-            if (mDate < sStart.Date)
-            {
+            if (mDate < sStart.Date) {
                 int diffToStart = ((int)MatchDay - (int)sStart.DayOfWeek + 7) % 7;
                 mDate = sStart.Date.AddDays(diffToStart);
             }
-        }       
+        }
+        return mDate;
+    }    
+
+    public string GetFormattedList(string title)
+    {
+        DateTime mDate = GetNextMatchDate();    
          
         var sb = new StringBuilder();
         sb.AppendLine($"📅 {mDate:yyyy/MM/dd} ({GetDayString(mDate.DayOfWeek)})");
@@ -1008,7 +1009,7 @@ public class VolleyData
         // 情況 C：一般日常報名同步
         else {
             int nextMatchDiff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
-            targetDate = now.Date.AddDays(nextMatchDiff);
+            targetDate = GetNextMatchDate();
 
             // 如果今天就是比賽日，且已經過了開賽時間，自動跳到「下週五」
             if (nextMatchDiff == 0 && now.Hour >= MatchHour) {
@@ -1063,9 +1064,14 @@ public class VolleyData
     }
 
     public void ResetToQuarterly() {
-        MaleParticipants.Clear(); FemaleParticipants.Clear(); MaleWaitingList.Clear(); FemaleWaitingList.Clear();
-        MaleParticipants.AddRange(MaleQuarterly.Take(MaxMale)); FemaleParticipants.AddRange(FemaleQuarterly.Take(MaxFemale));
+        MaleParticipants.Clear(); FemaleParticipants.Clear(); 
+        MaleWaitingList.Clear(); FemaleWaitingList.Clear();
+        // 確保只加入現有的季打
+        MaleParticipants.AddRange(MaleQuarterly.Take(MaxMale)); 
+        FemaleParticipants.AddRange(FemaleQuarterly.Take(MaxFemale));
+        
         ClosedDates.Clear();
+        AcRecords.Clear(); // 🚩 必加：避免舊的冷氣紀錄帶到新的一週
     }
     private string GetDayString(DayOfWeek d) => d switch { DayOfWeek.Monday=>"一", DayOfWeek.Tuesday=>"二", DayOfWeek.Wednesday=>"三", DayOfWeek.Thursday=>"四", DayOfWeek.Friday=>"五", DayOfWeek.Saturday=>"六", DayOfWeek.Sunday=>"日", _=>"" };
     public bool IsDeadlinePassed(DayOfWeek? targetDay, int h, int m)
@@ -1085,26 +1091,7 @@ public class VolleyData
 
     public string GetIPhoneNoteFormat()
     {
-        // 1. 取得當前時間
-        // 在方法內的第一行加入
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
-
-        // 2. 計算「目標比賽日」：根據該群組設定的 MatchDay (例如週六)
-        // 計算距離比賽日還有幾天，若今天就是比賽日且已過重置時間，則跳到下週
-        int diffToMatchDay = ((int)this.MatchDay - (int)now.DayOfWeek + 7) % 7;
-        DateTime targetDate = now.Date.AddDays(diffToMatchDay);
-
-        // 3. 判斷是否應該顯示「下一週」的日期
-        // 邏輯：如果現在時間已經超過該群組設定的「重置期限」，代表當週已結束，捷徑應顯示下週日期
-        DateTime resetDeadline = now.Date.AddDays(((int)this.ResetDay - (int)now.DayOfWeek + 7) % 7)
-                                    .AddHours(this.ResetHour)
-                                    .AddMinutes(this.ResetMinute);
-
-        // 如果目前時間已過重置點，或者今天就是比賽日且時間已過，日期往後推 7 天
-        if (now >= resetDeadline)
-        {
-            targetDate = targetDate.AddDays(7);
-        }
+        DateTime targetDate = GetNextMatchDate();
 
         // 4. 開始組合字串
         var sb = new StringBuilder();
@@ -1207,3 +1194,4 @@ public class VolleyManager {
     public void Save(string id, VolleyData d) => File.WriteAllText(Path.Combine(_path, $"{id}.json"), JsonConvert.SerializeObject(d, Formatting.Indented));
 }
 #endregion
+
