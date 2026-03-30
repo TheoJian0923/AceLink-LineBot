@@ -276,25 +276,32 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             {
                 if (!isAdmin) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限管理員使用。"); continue; }
 
-                if (cmd == "重置")
-                {
-                    data.ConfirmReset = true;
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 【安全確認】您確定要重置嗎？\n這將恢復季打並清空候補。\n\n請在 30 秒內回覆「確認重置」\n或輸入「取消」以終止。");
-                    continue;
-                }
+                // 1. 先處理「已經在等待確認」的情況
                 if (data.ConfirmReset)
                 {
                     if (userMessage.Contains("取消"))
                     {
                         data.ConfirmReset = false;
+                        manager.Save(groupId, data); // 🚩 狀態改變要存檔
                         await lineClient.ReplyMessageAsync(replyToken, "❌ 已取消重置，資料未變動。");
                     }
-                    else if (cmd == "確認重置")
+                    else if (userMessage == "確認重置") // 🚩 建議直接用 userMessage 比對更準確
                     {
                         data.ConfirmReset = false;
-                        data.ResetToQuarterly(); manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId);
+                        data.ResetToQuarterly(); 
+                        manager.Save(groupId, data); // 🚩 重置名單後要存檔
+                        _ = data.SyncToSheets(lineClient, groupId);
                         await lineClient.ReplyMessageAsync(replyToken, "🧹 已完成重置：恢復季打名單並清空候補。");
                     }
+                    continue; 
+                }
+
+                // 2. 處理「發起重置」的指令
+                if (cmd == "重置")
+                {
+                    data.ConfirmReset = true;
+                    manager.Save(groupId, data); // 🚩 【關鍵修正】必須先存檔，機器人才會「記得」你在等待確認
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 【安全確認】您確定要重置嗎？\n這將恢復季打並清空候補。\n\n請在 30 秒內回覆「確認重置」\n或輸入「取消」以終止。");
                     continue;
                 }
 
