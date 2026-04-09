@@ -681,12 +681,10 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     continue;
                 }
 
-                if ((cmd == "增加報名" || cmd == "取消報名") && lines.Count >= 3)
+                if (cmd == "增加報名" || cmd == "取消報名")
                 {
-                    string gender = lines[1];
-                    string pName = lines[2];
-                    if (cmd == "增加報名") { data.AddPlayer(pName, 1, gender); manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId); await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList($"✅ 已手動增加：{pName} ({gender})")); }
-                    else { string resMsg = data.RemovePlayer(pName, 1, false, gender); manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId); await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList($"✅ 已手動取消：{pName} ({gender})")); }
+                    string updateGuide = "⚠️ 指令格式已更新\n舊有的「增加/取消報名」指令已停用。\n現在請直接使用：\n➕ +1 男 姓名 (幫他人報名)\n➖ -1 男 姓名 (幫他人取消)\n或原有的 +1 男 / -1 男 進行個人報名。";
+                    await lineClient.ReplyMessageAsync(replyToken, updateGuide);
                     continue;
                 }
                 if (cmd.StartsWith("設定冷氣模式"))
@@ -707,7 +705,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 continue;
             }
 
-            var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)$");
+            var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)\s*(.*)$");
             if (regMatch.Success || userMessage == "查詢")
             {
                 if (!data.WhiteList.TryGetValue(userId, out string? name) || name == null)
@@ -766,17 +764,39 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             string action = regMatch.Groups[1].Value;
                             int count = int.Parse(regMatch.Groups[2].Value);
                             string gender = regMatch.Groups[3].Value;
+                            string targetName = regMatch.Groups[4].Value.Trim();
+                            
+                            // 決定報名姓名：若指令中有姓名則使用之，否則使用綁定姓名
+                            string finalName = string.IsNullOrEmpty(targetName) ? name : targetName;
+
                             if (action == "+")
                             {
                                 if (data.IsDeadlinePassed(data.DeadlineDay, data.DeadlineHour, data.DeadlineMinute))
                                     await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已超過報名截止時間。");
-                                else { data.AddPlayer(name, count, gender); manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId); await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList($"✅ {name} 報名成功")); }
+                                else 
+                                { 
+                                    data.AddPlayer(finalName, count, gender); 
+                                    manager.Save(groupId, data); 
+                                    _ = data.SyncToSheets(lineClient, groupId); 
+                                    
+                                    string successMsg = string.IsNullOrEmpty(targetName) 
+                                        ? $"✅ {finalName} 報名成功" 
+                                        : $"✅ 已手動增加：{finalName} ({gender})";
+                                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList(successMsg)); 
+                                }
                             }
                             else
                             {
                                 bool overdue = data.IsDeadlinePassed(data.CancelDeadlineDay, data.CancelDeadlineHour, data.CancelDeadlineMinute);
-                                string res = data.RemovePlayer(name, count, overdue, gender);
-                                manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId); await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList(res));
+                                string res = data.RemovePlayer(finalName, count, overdue, gender);
+                                
+                                manager.Save(groupId, data); 
+                                _ = data.SyncToSheets(lineClient, groupId); 
+                                
+                                string cancelMsg = string.IsNullOrEmpty(targetName)
+                                    ? res
+                                    : $"✅ 已手動取消：{finalName} ({gender})";
+                                await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList(cancelMsg));
                             }
                         }
                     }
