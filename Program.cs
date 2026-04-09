@@ -498,8 +498,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
       新名
 
     【 手動報名干預 】
-    ● 增加報名 ↵ 性別 ↵ 姓名
-    ● 取消報名 ↵ 性別 ↵ 姓名
+    ● 增加報名：+1 性別 姓名
+    ● 取消報名：+1 性別 姓名
 ┗━━━━━━━━━━━━┛";
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
                     continue;
@@ -827,8 +827,13 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             { 
                 string userHelp = @"┏━━ 🏐 AceLink 指令 ━━┓
     【 報名操作 】
+    個人報名：
     ● 報名 ➜ +1男 / +2女
     ● 取消 ➜ -1男 / -1女
+
+    幫他人報名
+    ● 報名 ➜ +1 性別 姓名
+    ● 取消 ➜ -1 性別 姓名
 
     【 查詢與帳號 】
     ● 查詢 ➜ 顯示目前報名狀態
