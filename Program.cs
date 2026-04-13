@@ -70,7 +70,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
                 "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間"
+                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -112,6 +112,36 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
+
+                if (cmd == "開發者指令")
+                {
+                    if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
+
+                    var sb = new StringBuilder();
+                    sb.AppendLine("⚡ 【AceLink 開發者控制台】 ⚡");
+                    sb.AppendLine("━━━━━━━━━━━━━━━");
+                    sb.AppendLine("🔑 [ 授權與權限 ]");
+                    sb.AppendLine("● 授權群組 [暱稱] [群組ID]");
+                    sb.AppendLine("● 移除群組授權 [群組ID]");
+                    sb.AppendLine("● 新增管理員 [暱稱] [ID]");
+                    sb.AppendLine("● 移除管理員 [ID]");
+                    sb.AppendLine("");
+                    sb.AppendLine("📊 [ 狀態監控 ]");
+                    sb.AppendLine("● 目前設定 (查當前群組細節)");
+                    sb.AppendLine("● 查詢已授權群組");
+                    sb.AppendLine("● 查詢現有管理員");
+                    sb.AppendLine("● 我的ID (查用戶及群組ID)");
+                    sb.AppendLine("");
+                    sb.AppendLine("⚙️ [ 進階控制 ]");
+                    sb.AppendLine("● 設定雲端網址 [URL]");
+                    sb.AppendLine("● 取消重置時間 (停止自動重置)");
+                    sb.AppendLine("● 開啟重置時間 (恢復自動重置)");
+                    sb.AppendLine("━━━━━━━━━━━━━━━");
+                    sb.AppendLine("⚠️ 開發者指令具備最高權限，請謹慎操作。");
+
+                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
+                    continue;
+                }                
                 
                 if (cmd == "目前設定")
                 {
