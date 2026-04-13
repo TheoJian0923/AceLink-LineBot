@@ -70,7 +70,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
                 "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組", "目前設定"
+                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -108,7 +108,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
@@ -258,6 +258,22 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
                     continue;
                 }
+
+                if (cmd == "取消重置時間")
+                {
+                    data.IsResetEnabled = false;
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "🚫 已取消本群組的自動重置功能。\n（如需恢復請輸入「開啟重置時間」）");
+                    continue;
+                }
+
+                if (cmd == "開啟重置時間")
+                {
+                    data.IsResetEnabled = true;
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已重新開啟自動重置功能。");
+                    continue;
+                }                
             }
             #endregion
 
@@ -883,6 +899,7 @@ public class VolleyData
     public bool IsAcAlwaysOn = false;
     public bool ConfirmReset { get; set; } = false;
     public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
+    public bool IsResetEnabled { get; set; } = true; // 預設為開啟自動重置
 
     public DateTime GetCalibratedMatchDate(DateTime now) {
         // 取得本週五的日期基準
@@ -1184,6 +1201,12 @@ public class ResetTaskService : BackgroundService {
                     string gId = Path.GetFileNameWithoutExtension(file);
                     var data = _manager.Load(gId);
                     if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) {
+
+                        // 【新增判定】如果開關被關閉，則跳過重置
+                        if (!data.IsResetEnabled) 
+                        {
+                            continue; 
+                        }
 
                         if (data.IsRecentlyReset) 
                         {
