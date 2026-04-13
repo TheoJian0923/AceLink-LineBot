@@ -714,18 +714,11 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 }
                 else
                 {
-                    // 1. 取得台灣目前時間 (避免伺服器在國外導致日期錯誤)
+                    // --- 新的 Webhook 日期計算 ---
                     var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
 
-                    // 2. 計算最近的一個比賽日 (mDate)
-                    int diffToMatch = ((int)data.MatchDay - (int)now.DayOfWeek + 7) % 7;
-                    var mDate = now.Date.AddDays(diffToMatch);
-
-                    // 如果今天就是比賽日，且已經過了開賽時間，目標日應跳到「下週」
-                    if (diffToMatch == 0 && now.Hour >= data.MatchHour) 
-                    {
-                        mDate = mDate.AddDays(7);
-                    }
+                    // 統一調用 data 裡面的校準邏輯，確保與重置時間同步
+                    var mDate = data.GetCalibratedMatchDate(now);
 
                     // 2. 🚩 [核心邏輯改動]：如果這個日期還沒到新賽季，自動「校準」到新賽季首戰
                     if (!string.IsNullOrEmpty(data.SeasonStart))
@@ -891,21 +884,34 @@ public class VolleyData
     public bool ConfirmReset { get; set; } = false;
     public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
 
-    private DateTime GetNextMatchDate() {
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
-        int diff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
-        var mDate = now.Date.AddDays(diff);
-        if (diff == 0 && now.Hour >= MatchHour) mDate = mDate.AddDays(7);
+    public DateTime GetCalibratedMatchDate(DateTime now) {
+        // 取得本週五的日期基準
+        int diffToFriday = ((int)DayOfWeek.Friday - (int)now.DayOfWeek);
+        DateTime thisFriday = now.Date.AddDays(diffToFriday);
 
+        // 取得本週六的重置時間點
+        int diffToReset = ((int)ResetDay - (int)now.DayOfWeek);
+        DateTime resetPoint = now.Date.AddDays(diffToReset).AddHours(ResetHour).AddMinutes(ResetMinute);
+
+        // 核心判定：若現在時間還沒到重置點，目標日期鎖定在「本週五」
+        // 若已過重置點，才跳到「下週五」
+        DateTime targetDate = (now < resetPoint) ? thisFriday : thisFriday.AddDays(7);
+
+        // 賽季首戰校準邏輯 (保留您原有的 SeasonStart 判斷)
         if (!string.IsNullOrEmpty(SeasonStart)) {
             DateTime sStart = DateTime.ParseExact(SeasonStart, "yyyyMMdd", null);
-            if (mDate < sStart.Date) {
+            if (targetDate < sStart.Date) {
                 int diffToStart = ((int)MatchDay - (int)sStart.DayOfWeek + 7) % 7;
-                mDate = sStart.Date.AddDays(diffToStart);
+                targetDate = sStart.Date.AddDays(diffToStart);
             }
         }
-        return mDate;
+        return targetDate;
     }    
+    
+    private DateTime GetNextMatchDate() {
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+        return GetCalibratedMatchDate(now);
+    } 
 
     public string GetFormattedList(string title)
     {
@@ -1027,26 +1033,17 @@ public class VolleyData
 
         // --- 核心日期判定邏輯 (賽季接力模式) ---
 
-        // 情況 A：手動指定日期 (例如：點擊開關冷氣選單傳入的 20260327)
         if (!string.IsNullOrEmpty(targetDateKey) && targetDateKey.Length == 8) {
             targetDate = DateTime.ParseExact(targetDateKey, "yyyyMMdd", null);
         }
-        // 情況 B：啟動新賽季 (isNewSeason = true)
         else if (isNewSeason) {
-            // 💡 關鍵：不看「今天」，直接從「新賽季開始日」往後找第一個比賽星期幾
             DateTime start = DateTime.ParseExact(SeasonStart, "yyyyMMdd", null);
             int diff = ((int)MatchDay - (int)start.DayOfWeek + 7) % 7;
             targetDate = start.AddDays(diff);
         }
-        // 情況 C：一般日常報名同步
         else {
-            int nextMatchDiff = ((int)MatchDay - (int)now.DayOfWeek + 7) % 7;
-            targetDate = GetNextMatchDate();
-
-            // 如果今天就是比賽日，且已經過了開賽時間，自動跳到「下週五」
-            if (nextMatchDiff == 0 && now.Hour >= MatchHour) {
-                targetDate = targetDate.AddDays(7);
-            }
+            // 直接調用校準函式，這會參考您的重置時間 (週六 12:00)
+            targetDate = GetCalibratedMatchDate(now);
         }
 
         // --- 準備傳送給 GAS 的資料 ---
@@ -1214,6 +1211,7 @@ public class ResetTaskService : BackgroundService {
             await Task.Delay(61000, stoppingToken);
         }
     }
+    
 }
 
 public class VolleyManager {
@@ -1225,5 +1223,7 @@ public class VolleyManager {
     }
     public void Save(string id, VolleyData d) => File.WriteAllText(Path.Combine(_path, $"{id}.json"), JsonConvert.SerializeObject(d, Formatting.Indented));
 }
+
+
 #endregion
 
