@@ -14,8 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 string accessToken = Environment.GetEnvironmentVariable("LINE_ACCESS_TOKEN") ?? "";
 string channelSecret = Environment.GetEnvironmentVariable("LINE_CHANNEL_SECRET") ?? "";
 
-// 在 app 啟動前定義
-Dictionary<string, string> PendingDeletes = new(); // Key: GroupID, Value: GroupName
+
 
 builder.Services.AddSingleton<VolleyManager>();
 builder.Services.AddSingleton<ILineMessagingClient>(_ => new LineMessagingClient(accessToken));
@@ -148,7 +147,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
 
                     // 紀錄到記憶體暫存區
-                    PendingDeletes[foundGId] = targetNickName;
+                    manager.PendingDeletes[foundGId] = targetNickName;
 
                     // 構造「目前設定」格式的二次確認訊息
                     var sb = new StringBuilder();
@@ -175,24 +174,28 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd.StartsWith("確認刪除資料"))
                 {
                     if (!isDeveloper) return Results.Ok();
-                    string targetId = userMessage.Replace("確認刪除資料", "").Trim();
+                    // 移除所有可能的空白與換行
+                    string targetId = userMessage.Replace("確認刪除資料", "").Trim()
+                                                .Replace("\n", "")
+                                                .Replace("\r", "")
+                                                .Replace(" ", "");
 
                     // 檢查記憶體中是否有此申請
-                    if (PendingDeletes.ContainsKey(targetId))
+                    if (manager.PendingDeletes.ContainsKey(targetId))
                     {
-                        string groupName = PendingDeletes[targetId];
+                        string groupName = manager.PendingDeletes[targetId];
                         string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData", $"{targetId}.json");
 
                         if (File.Exists(filePath))
                         {
                             File.Delete(filePath);
-                            PendingDeletes.Remove(targetId); // 移除暫存
+                            manager.PendingDeletes.Remove(targetId); // 移除暫存
                             await lineClient.ReplyMessageAsync(replyToken, $"🗑️ 刪除成功！已永久移除「{groupName}」的資料檔案。");
                         }
                         else
                         {
                             await lineClient.ReplyMessageAsync(replyToken, "❌ 檔案已被移除或不存在。");
-                            PendingDeletes.Remove(targetId);
+                            manager.PendingDeletes.Remove(targetId);
                         }
                     }
                     else
@@ -1355,6 +1358,7 @@ public class ResetTaskService : BackgroundService {
 }
 
 public class VolleyManager {
+    public Dictionary<string, string> PendingDeletes { get; } = new();
     private readonly string _path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
     public VolleyManager() { if (!Directory.Exists(_path)) Directory.CreateDirectory(_path); }
     public VolleyData Load(string id) {
