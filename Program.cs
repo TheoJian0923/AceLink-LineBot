@@ -214,6 +214,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine("● 移除群組授權 [群組ID]");
                     sb.AppendLine("● 新增管理員 [暱稱] [ID]");
                     sb.AppendLine("● 移除管理員 [ID]");
+                    sb.AppendLine("● 清除群組資料 [暱稱]");
                     sb.AppendLine("");
                     sb.AppendLine("📊 [ 狀態監控 ]");
                     sb.AppendLine("● 目前設定 (查當前群組細節)");
