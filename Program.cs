@@ -173,55 +173,51 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 // 2. 最終確認刪除：確認刪除資料 [ID]
                 if (cmd.StartsWith("確認刪除資料"))
                 {
-                    // 偵錯點 1：確認進入區塊
-                    if (!isDeveloper) {
-                        await lineClient.ReplyMessageAsync(replyToken, $"🚫 偵錯：非開發者身分 (你的ID: {userId})");
+                    if (!isDeveloper) return Results.Ok();
+
+                    // 使用正則表達式精準抓取 ID
+                    var match = Regex.Match(userMessage, @"確認刪除資料\s*([a-zA-Z0-9]+)");
+                    if (!match.Success) 
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 指令格式錯誤，請提供正確的 ID。");
                         return Results.Ok();
                     }
 
-                    // 偵錯點 2：解析 userMessage
-                    var match = Regex.Match(userMessage, @"確認刪除資料\s*([a-zA-Z0-9]+)");
-                    if (!match.Success) {
-                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 偵錯：正則匹配失敗。原始訊息：[{userMessage}]");
-                        return Results.Ok();
-                    }
-                    
                     string targetId = match.Groups[1].Value.Trim();
-                    // 偵錯點 3：確認抓到的 ID
-                    await lineClient.PushMessageAsync(userId, $"🔍 偵錯：準備校驗 ID = [{targetId}]");
 
                     if (manager.PendingDeletes.ContainsKey(targetId))
                     {
                         string groupName = manager.PendingDeletes[targetId];
                         string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData", $"{targetId}.json");
-                        
-                        // 偵錯點 4：檢查檔案路徑與是否存在
-                        await lineClient.PushMessageAsync(userId, $"路徑：{filePath}\n存在：{File.Exists(filePath)}");
 
                         if (File.Exists(filePath))
                         {
-                            try {
+                            try 
+                            {
                                 File.Delete(filePath);
                                 manager.PendingDeletes.Remove(targetId);
-                                await lineClient.ReplyMessageAsync(replyToken, $"🗑️ 刪除成功！已移除「{groupName}」。");
+                                await lineClient.ReplyMessageAsync(replyToken, $"🗑️ 刪除成功！已永久移除「{groupName}」的資料檔案。");
+                                
+                                // 成功後立即中斷，防止執行後續可能的存檔動作
                                 return Results.Ok(); 
-                            } catch (Exception ex) {
-                                await lineClient.ReplyMessageAsync(replyToken, $"🚨 偵錯：刪除動作噴錯：{ex.Message}");
-                                return Results.Ok();
+                            }
+                            catch (Exception ex) 
+                            {
+                                await lineClient.ReplyMessageAsync(replyToken, $"❌ 刪除檔案時發生錯誤：{ex.Message}");
                             }
                         }
-                        else {
-                            await lineClient.ReplyMessageAsync(replyToken, "❌ 偵錯：邏輯判定檔案不存在，無法刪除。");
+                        else 
+                        {
+                            await lineClient.ReplyMessageAsync(replyToken, "❌ 找不到實體檔案，可能已被移除。");
+                            manager.PendingDeletes.Remove(targetId);
                         }
                     }
                     else 
                     {
-                        // 偵錯點 5：PendingDeletes 內容比對失敗
-                        string currentKeys = string.Join("\n", manager.PendingDeletes.Keys);
-                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 偵錯：PendingDeletes 找不到該 Key。\n當前暫存清單：\n{currentKeys}");
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 找不到申請紀錄，請重新輸入「清除群組資料 [暱稱]」。");
                     }
-                    return Results.Ok();
-                }         
+                    return Results.Ok(); 
+                }       
 
                 if (cmd == "開發者指令")
                 {
