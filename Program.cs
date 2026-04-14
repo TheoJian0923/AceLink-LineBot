@@ -174,13 +174,15 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd.StartsWith("確認刪除資料"))
                 {
                     if (!isDeveloper) return Results.Ok();
-                    // 移除所有可能的空白與換行
-                    string targetId = userMessage.Replace("確認刪除資料", "").Trim()
-                                                .Replace("\n", "")
-                                                .Replace("\r", "")
-                                                .Replace(" ", "");
+                    
+                    // 使用正則表達式精準抓取 ID (排除換行與空白)
+                    var match = Regex.Match(userMessage, @"確認刪除資料\s*([a-zA-Z0-9]+)");
+                    if (!match.Success) {
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 指令格式錯誤，請提供正確的 ID。");
+                        return Results.Ok(); // 加上 return 防止執行後續代碼
+                    }
+                    string targetId = match.Groups[1].Value.Trim();
 
-                    // 檢查記憶體中是否有此申請
                     if (manager.PendingDeletes.ContainsKey(targetId))
                     {
                         string groupName = manager.PendingDeletes[targetId];
@@ -189,21 +191,18 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (File.Exists(filePath))
                         {
                             File.Delete(filePath);
-                            manager.PendingDeletes.Remove(targetId); // 移除暫存
-                            await lineClient.ReplyMessageAsync(replyToken, $"🗑️ 刪除成功！已永久移除「{groupName}」的資料檔案。");
-                        }
-                        else
-                        {
-                            await lineClient.ReplyMessageAsync(replyToken, "❌ 檔案已被移除或不存在。");
                             manager.PendingDeletes.Remove(targetId);
+                            await lineClient.ReplyMessageAsync(replyToken, $"🗑️ 刪除成功！已永久移除「{groupName}」的資料檔案。");
+                            
+                            // 【關鍵】刪除成功後直接 return，不要讓最後一行的 manager.Save 執行
+                            return Results.Ok(); 
                         }
                     }
-                    else
-                    {
-                        await lineClient.ReplyMessageAsync(replyToken, "❌ 該 ID 尚未經過「清除群組資料 [暱稱]」申請，或標記已失效。");
+                    else {
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 找不到申請紀錄，請重新輸入「清除群組資料 [暱稱]」。");
                     }
-                    continue;
-                }                
+                    return Results.Ok(); // 加上 return 防止執行後續代碼
+                }             
 
                 if (cmd == "開發者指令")
                 {
