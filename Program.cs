@@ -14,6 +14,9 @@ var builder = WebApplication.CreateBuilder(args);
 string accessToken = Environment.GetEnvironmentVariable("LINE_ACCESS_TOKEN") ?? "";
 string channelSecret = Environment.GetEnvironmentVariable("LINE_CHANNEL_SECRET") ?? "";
 
+// 在 app 啟動前定義
+Dictionary<string, string> PendingDeletes = new(); // Key: GroupID, Value: GroupName
+
 builder.Services.AddSingleton<VolleyManager>();
 builder.Services.AddSingleton<ILineMessagingClient>(_ => new LineMessagingClient(accessToken));
 builder.Services.AddHostedService<ResetTaskService>();
@@ -70,7 +73,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
                 "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令"
+                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -108,15 +111,99 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
 
+                // 1. 發起刪除申請：清除群組資料 [暱稱]
+                if (cmd.StartsWith("清除群組資料"))
+                {
+                    if (!isDeveloper) return Results.Ok();
+                    string targetNickName = userMessage.Replace("清除群組資料", "").Trim();
+                    
+                    // 遍歷實體檔案尋找匹配的暱稱
+                    var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
+                    var files = Directory.GetFiles(folderPath, "*.json");
+                    
+                    string? foundGId = null;
+                    VolleyData? foundData = null;
+
+                    foreach (var file in files)
+                    {
+                        var jsonContent = File.ReadAllText(file);
+                        var d = JsonConvert.DeserializeObject<VolleyData>(jsonContent);
+                        if (d?.GroupName == targetNickName)
+                        {
+                            foundGId = Path.GetFileNameWithoutExtension(file);
+                            foundData = d;
+                            break;
+                        }
+                    }
+
+                    if (foundGId == null || foundData == null)
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到名為「{targetNickName}」的群組資料。");
+                        continue;
+                    }
+
+                    // 紀錄到記憶體暫存區
+                    PendingDeletes[foundGId] = targetNickName;
+
+                    // 構造「目前設定」格式的二次確認訊息
+                    var sb = new StringBuilder();
+                    sb.AppendLine("⚠️ 【請確認欲刪除的群組設定】");
+                    sb.AppendLine("━━━━━━━━━━━━━━━");
+                    sb.AppendLine($"📍 群組名稱：{foundData.GroupName}");
+                    sb.AppendLine($"🆔 群組 ID：{foundGId}");
+                    sb.AppendLine("------------------");
+                    sb.AppendLine($"● 授權狀態：{(foundData.IsAuthorized ? "已授權" : "未授權")}");
+                    sb.AppendLine($"● 管理員人數：{foundData.Admins.Count}");
+                    sb.AppendLine($"● 球季期間：{foundData.SeasonStart} ~ {foundData.SeasonEnd}");
+                    sb.AppendLine($"● 比賽時間：週({foundData.MatchDay}) {foundData.MatchHour:D2}:{foundData.MatchMinute:D2}");
+                    sb.AppendLine($"● 季打費用：{foundData.QuarterlyFee} 元");
+                    sb.AppendLine($"● 雲端網址：{(string.IsNullOrEmpty(foundData.GasUrl) ? "未設定" : "已設定")}");
+                    sb.AppendLine("━━━━━━━━━━━━━━━");
+                    sb.AppendLine($"\n確認刪除請複製並輸入：\n確認刪除資料 {foundGId}");
+                    sb.AppendLine("\n(若不刪除，直接輸入其他指令即可忽略此申請)");
+
+                    await lineClient.ReplyMessageAsync(replyToken, sb.ToString().Trim());
+                    continue;
+                }
+
+                // 2. 最終確認刪除：確認刪除資料 [ID]
+                if (cmd.StartsWith("確認刪除資料"))
+                {
+                    if (!isDeveloper) return Results.Ok();
+                    string targetId = userMessage.Replace("確認刪除資料", "").Trim();
+
+                    // 檢查記憶體中是否有此申請
+                    if (PendingDeletes.ContainsKey(targetId))
+                    {
+                        string groupName = PendingDeletes[targetId];
+                        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData", $"{targetId}.json");
+
+                        if (File.Exists(filePath))
+                        {
+                            File.Delete(filePath);
+                            PendingDeletes.Remove(targetId); // 移除暫存
+                            await lineClient.ReplyMessageAsync(replyToken, $"🗑️ 刪除成功！已永久移除「{groupName}」的資料檔案。");
+                        }
+                        else
+                        {
+                            await lineClient.ReplyMessageAsync(replyToken, "❌ 檔案已被移除或不存在。");
+                            PendingDeletes.Remove(targetId);
+                        }
+                    }
+                    else
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 該 ID 尚未經過「清除群組資料 [暱稱]」申請，或標記已失效。");
+                    }
+                    continue;
+                }                
+
                 if (cmd == "開發者指令")
                 {
-                    if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
-
                     var sb = new StringBuilder();
                     sb.AppendLine("⚡ 【AceLink 開發者控制台】 ⚡");
                     sb.AppendLine("━━━━━━━━━━━━━━━");
