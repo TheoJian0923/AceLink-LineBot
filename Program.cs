@@ -849,14 +849,16 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             #endregion
 
             #region --- 一般使用者指令 ---
-            var genderMissingMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-18])$");
+            // 偵測是否只輸入了 +1~18 但沒輸入性別
+            var genderMissingMatch = Regex.Match(userMessage, @"^(\+|-)\s*(1[0-8]|[1-9])$");
             if (genderMissingMatch.Success)
             {
-                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 您好，您尚未輸入性別。\n範例：+1男 或 -1女");
+                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 您好，您尚未輸入性別。\n範例：+1~18 男/女");
                 continue;
             }
 
-            var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-18])\s*(男|女)\s*(.*)$");
+            // 使用 (1[0-8]|[1-9]) 來匹配 10-18 或 1-9
+            var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*(1[0-8]|[1-9])\s*(男|女)\s*(.*)$");
             if (regMatch.Success || userMessage == "查詢")
             {
                 if (!data.WhiteList.TryGetValue(userId, out string? name) || name == null)
