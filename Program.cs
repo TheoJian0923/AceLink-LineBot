@@ -649,8 +649,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
       新名
 
     【 手動報名干預 】
-    ● 增加報名：+1 性別 姓名
-    ● 取消報名：+1 性別 姓名
+    ● 增加報名：+1~18 性別 姓名
+    ● 取消報名：+1~18 性別 姓名
 ┗━━━━━━━━━━━━┛";
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
                     continue;
@@ -849,14 +849,14 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             #endregion
 
             #region --- 一般使用者指令 ---
-            var genderMissingMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])$");
+            var genderMissingMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-18])$");
             if (genderMissingMatch.Success)
             {
                 await lineClient.ReplyMessageAsync(replyToken, "⚠️ 您好，您尚未輸入性別。\n範例：+1男 或 -1女");
                 continue;
             }
 
-            var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)\s*(.*)$");
+            var regMatch = Regex.Match(userMessage, @"^(\+|-)\s*([1-18])\s*(男|女)\s*(.*)$");
             if (regMatch.Success || userMessage == "查詢")
             {
                 if (!data.WhiteList.TryGetValue(userId, out string? name) || name == null)
@@ -972,12 +972,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 string userHelp = @"┏━━ 🏐 AceLink 指令 ━━┓
     【 報名操作 】
     個人報名：
-    ● 報名 ➜ +1男 / +2女
-    ● 取消 ➜ -1男 / -1女
+    ● 報名 ➜ +1~18 男/女
+    ● 取消 ➜ -1~18 男/女
 
     幫他人報名
-    ● 報名 ➜ +1 性別 姓名
-    ● 取消 ➜ -1 性別 姓名
+    ● 報名 ➜ +1~18 性別 姓名 
+    ● 取消 ➜ -1~18 性別 姓名
 
     【 查詢與帳號 】
     ● 查詢 ➜ 顯示目前報名狀態
