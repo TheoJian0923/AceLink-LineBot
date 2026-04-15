@@ -650,7 +650,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
     【 手動報名干預 】
     ● 增加報名：+1~18 性別 姓名
-    ● 取消報名：+1~18 性別 姓名
+    ● 取消報名：-1~18 性別 姓名
 ┗━━━━━━━━━━━━┛";
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
                     continue;
