@@ -192,31 +192,35 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         targetData.MaleQuarterly = new HashSet<string>(sourceData.MaleQuarterly);
                         targetData.FemaleQuarterly = new HashSet<string>(sourceData.FemaleQuarterly);
 
-                        // --- 校正 C：清理狀態與重置名單 ---
-                        targetData.MaleParticipants.Clear(); targetData.FemaleParticipants.Clear();
-                        targetData.MaleWaitingList.Clear(); targetData.FemaleWaitingList.Clear();
-                        targetData.AcRecords.Clear();
-                        targetData.ClosedDates.Clear();
-                        targetData.IsAuthorized = true; 
-                        targetData.SetupStep = 0; // 確保不再跳出初始化提示
-                        targetData.IsRecentlyReset = true; // 標記為已手動重置，防止自動服務再次觸發
-
-                        targetData.ResetToQuarterly();
+                        // --- 校正 C：完全繼承當前動態名單 (您的理想效果) ---
+                        // 這裡不再執行 ResetToQuarterly()，而是直接從來源拷貝當前所有報名狀態
+                        targetData.MaleParticipants = new List<string>(sourceData.MaleParticipants);
+                        targetData.FemaleParticipants = new List<string>(sourceData.FemaleParticipants);
+                        targetData.MaleWaitingList = new List<string>(sourceData.MaleWaitingList);
+                        targetData.FemaleWaitingList = new List<string>(sourceData.FemaleWaitingList);
                         
+                        // 同步拷貝當週的特殊狀態
+                        targetData.AcRecords = new Dictionary<string, bool>(sourceData.AcRecords);
+                        targetData.ClosedDates = new Dictionary<string, bool>(sourceData.ClosedDates);
+                        
+                        targetData.IsAuthorized = true; 
+                        targetData.SetupStep = 0; 
+                        targetData.IsRecentlyReset = true; 
+
                         // 存檔
                         manager.Save(targetId, targetData);
                         manager.PendingImports.Remove(userId);
 
                         // --- 校正 D：非阻塞異步同步 ---
-                        // 獲取當前校準後的比賽日期，作為 targetDateKey 傳入
                         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
                         string forceDateKey = targetData.GetCalibratedMatchDate(now).ToString("yyyyMMdd");
 
                         _ = Task.Run(async () => {
+                            // 這裡傳入 true 觸發 GAS 生成/確認標題，同時傳入 forceDateKey 確保名單上傳
                             await targetData.SyncToSheets(lineClient, targetId, true, forceDateKey);
                         });
 
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 導入成功！\n群組「{targetData.GroupName}」已繼承「{sourceData.GroupName}」之設定。\n雲端表格同步中，請稍候...");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 導入成功！\n群組「{targetData.GroupName}」已完全繼承「{sourceData.GroupName}」之設定與目前報名名單。\n雲端表格同步中...");
                     }
                     catch (Exception ex) {
                         await lineClient.ReplyMessageAsync(replyToken, $"❌ 導入過程出錯：{ex.Message}");
