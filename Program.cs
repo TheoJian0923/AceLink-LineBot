@@ -72,7 +72,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
                 "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料"
+                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -110,10 +110,107 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
+
+                // --- [開發者指令] 導入模板 [來源暱稱] ---
+                if (cmd.StartsWith("導入"))
+                {
+                    if (!isDeveloper) return Results.Ok();
+                    string sourceNickName = userMessage.Replace("導入模板", "").Trim();
+                    
+                    // 尋找來源 ID
+                    var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
+                    var files = Directory.GetFiles(folderPath, "*.json");
+                    string? sourceId = files.Select(f => new { id = Path.GetFileNameWithoutExtension(f), d = JsonConvert.DeserializeObject<VolleyData>(File.ReadAllText(f)) })
+                                            .FirstOrDefault(x => x.d?.GroupName == sourceNickName)?.id;
+
+                    if (sourceId == null) {
+                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到名為「{sourceNickName}」的模板來源。");
+                        continue;
+                    }
+
+                    // 記錄轉移關係 (Key: 目前執行指令的開發者, Value: 來源ID|目標群組ID)
+                    manager.PendingImports[userId] = $"{sourceId}|{groupId}";
+
+                    await lineClient.ReplyMessageAsync(replyToken, 
+                        $"📋 【導入模板確認】\n" +
+                        $"------------------\n" +
+                        $"來源模板：{sourceNickName}\n" +
+                        $"套用目標：{data.GroupName} ({groupId})\n" +
+                        $"------------------\n" +
+                        $"⚠️ 將複製以下設定：\n" +
+                        $"● 賽季時間與比賽時段\n" +
+                        $"● 季打/冷氣費用與預收金額\n" +
+                        $"● 完整季打名單 ({manager.Load(sourceId).MaleQuarterly.Count + manager.Load(sourceId).FemaleQuarterly.Count} 位)\n" +
+                        $"● 自動重置與截止期限設定\n\n" +
+                        $"注意：現有報名、對帳紀錄將清空，並開啟新 GAS 分頁。\n" +
+                        $"確認請輸入：確認導入模板");
+                    continue;
+                }
+
+                // --- [開發者指令] 確認執行導入 ---
+                if (cmd == "確認導入模板")
+                {
+                    if (!isDeveloper || !manager.PendingImports.ContainsKey(userId)) return Results.Ok();
+
+                    string[] ids = manager.PendingImports[userId].Split('|');
+                    string sourceId = ids[0];
+                    string targetId = ids[1];
+
+                    try {
+                        var sourceData = manager.Load(sourceId);
+                        var targetData = manager.Load(targetId);
+
+                        // --- 核心轉移邏輯：選擇性複製屬性 ---
+                        // 1. 複製基礎設定
+                        targetData.SeasonStart = sourceData.SeasonStart;
+                        targetData.SeasonEnd = sourceData.SeasonEnd;
+                        targetData.MatchDay = sourceData.MatchDay;
+                        targetData.MatchHour = sourceData.MatchHour;
+                        targetData.MatchMinute = sourceData.MatchMinute;
+                        targetData.QuarterlyFee = sourceData.QuarterlyFee;
+                        targetData.AcFee = sourceData.AcFee;
+                        targetData.PrepaidFee = sourceData.PrepaidFee;
+                        targetData.IsAcAlwaysOn = sourceData.IsAcAlwaysOn;
+                        targetData.ResetDay = sourceData.ResetDay;
+                        targetData.ResetHour = sourceData.ResetHour;
+                        targetData.ResetMinute = sourceData.ResetMinute;
+                        targetData.DeadlineDay = sourceData.DeadlineDay;
+                        targetData.DeadlineHour = sourceData.DeadlineHour;
+                        targetData.DeadlineMinute = sourceData.DeadlineMinute;
+                        targetData.CancelDeadlineDay = sourceData.CancelDeadlineDay;
+                        targetData.CancelDeadlineHour = sourceData.CancelDeadlineHour;
+                        targetData.CancelDeadlineMinute = sourceData.CancelDeadlineMinute;
+                        
+                        // 2. 複製季打名單
+                        targetData.MaleQuarterly = new HashSet<string>(sourceData.MaleQuarterly);
+                        targetData.FemaleQuarterly = new HashSet<string>(sourceData.FemaleQuarterly);
+
+                        // 3. 清理與保護
+                        targetData.MaleParticipants.Clear(); targetData.FemaleParticipants.Clear();
+                        targetData.MaleWaitingList.Clear(); targetData.FemaleWaitingList.Clear();
+                        targetData.AcRecords.Clear();
+                        targetData.ClosedDates.Clear();
+                        targetData.IsAuthorized = true; // 強制開啟授權
+                        
+                        // 4. 恢復為季打狀態並存檔
+                        targetData.ResetToQuarterly();
+                        manager.Save(targetId, targetData);
+                        manager.PendingImports.Remove(userId);
+
+                        // 5. 觸發 GAS (這會因 ID 不同而在同個 URL 下建立新分頁)
+                        await targetData.SyncToSheets(lineClient, targetId, true);
+
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 模板導入成功！\n目標群組「{targetData.GroupName}」已完成初始化並同步至雲端表格。");
+                    }
+                    catch (Exception ex) {
+                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 導入過程出錯：{ex.Message}");
+                    }
+                    continue;
+                }
 
                 // 1. 發起刪除申請：清除群組資料 [暱稱]
                 if (cmd.StartsWith("清除群組資料"))
@@ -229,7 +326,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine("● 移除群組授權 [群組ID]");
                     sb.AppendLine("● 新增管理員 [暱稱] [ID]");
                     sb.AppendLine("● 移除管理員 [ID]");
-                    sb.AppendLine("● 清除群組資料 [暱稱]");
+                    sb.AppendLine("● 清除群組資料 [群組暱稱]");
+                    sb.AppendLine("● 導入 [群組暱稱]");
                     sb.AppendLine("");
                     sb.AppendLine("📊 [ 狀態監控 ]");
                     sb.AppendLine("● 目前設定 (查當前群組細節)");
@@ -1375,6 +1473,7 @@ public class ResetTaskService : BackgroundService {
 }
 
 public class VolleyManager {
+    public Dictionary<string, string> PendingImports { get; } = new();
     public Dictionary<string, string> PendingDeletes { get; } = new();
     private readonly string _path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
     public VolleyManager() { if (!Directory.Exists(_path)) Directory.CreateDirectory(_path); }
