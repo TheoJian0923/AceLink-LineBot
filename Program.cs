@@ -72,7 +72,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
                 "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
                 "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入"
+                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入", "確認導入"
             };
             
             bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
@@ -110,7 +110,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             string cmd = lines[0];
 
             #region --- 開發者指令區 ---
-            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入" };
+            var devOnlyCommands = new List<string> { "新增管理員", "移除管理員", "授權群組", "移除群組授權", "設定雲端網址", "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入", "確認導入" };
             if (devOnlyCommands.Any(c => cmd.StartsWith(c)))
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
@@ -119,7 +119,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd.StartsWith("導入"))
                 {
                     if (!isDeveloper) return Results.Ok();
-                    string sourceNickName = userMessage.Replace("導入模板", "").Trim();
+                    string sourceNickName = userMessage.Replace("導入", "").Trim();
                     
                     // 尋找來源 ID
                     var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
@@ -147,12 +147,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         $"● 完整季打名單 ({manager.Load(sourceId).MaleQuarterly.Count + manager.Load(sourceId).FemaleQuarterly.Count} 位)\n" +
                         $"● 自動重置與截止期限設定\n\n" +
                         $"注意：現有報名、對帳紀錄將清空，並開啟新 GAS 分頁。\n" +
-                        $"確認請輸入：確認導入模板");
+                        $"確認請輸入：確認導入");
                     continue;
                 }
 
                 // --- [開發者指令] 確認執行導入 ---
-                if (cmd == "確認導入模板")
+                if (cmd == "確認導入")
                 {
                     if (!isDeveloper || !manager.PendingImports.ContainsKey(userId)) return Results.Ok();
 
@@ -204,7 +204,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         // 5. 觸發 GAS (這會因 ID 不同而在同個 URL 下建立新分頁)
                         await targetData.SyncToSheets(lineClient, targetId, true);
 
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 模板導入成功！\n目標群組「{targetData.GroupName}」已完成初始化並同步至雲端表格。");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 導入成功！\n目標群組「{targetData.GroupName}」已完成初始化並同步至雲端表格。");
                     }
                     catch (Exception ex) {
                         await lineClient.ReplyMessageAsync(replyToken, $"❌ 導入過程出錯：{ex.Message}");
