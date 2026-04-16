@@ -1040,7 +1040,7 @@ public class VolleyData
 
     public DateTime GetCalibratedMatchDate(DateTime now) {
         // 取得本週五的日期基準
-        int diffToFriday = ((int)DayOfWeek.Friday - (int)now.DayOfWeek);
+        int diffToFriday = ((int)MatchDay - (int)now.DayOfWeek);
         DateTime thisFriday = now.Date.AddDays(diffToFriday);
 
         // 取得本週六的重置時間點
