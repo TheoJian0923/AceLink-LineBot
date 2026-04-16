@@ -65,17 +65,46 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             if (string.IsNullOrEmpty(userMessage)) continue;
 
             // 1. [PlanA] 授權檢查邏輯
-            // 開發者擁有最高權限不受限；其餘人在未授權狀態下「只能」使用「我的ID」
             if (!isDeveloper && !data.IsAuthorized)
             {
                 if (userMessage != "我的ID")
                 {
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 此群組尚未經過開發者授權使用，請聯繫開發者。");
+                    // (1) 先回覆警告訊息（Reply 是免費的）
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 此群組尚未經過開發者授權使用。\n機器人將自動退出，如有需求請聯繫開發者。");
                     
-                    // 主動發送消息給開發者
-                    string alertMsg = $"📢 【授權申請通知】\n有用戶在未授權群組嘗試使用指令。\n群組 ID：\n{groupId}\n用戶 ID：\n{userId}\n輸入內容：{userMessage}";
+                    // (2) 發送最後一則通知給開發者（保留追蹤線索）
+                    string alertMsg = $"🚫 【自動退群通知】\n群組 ID：\n{groupId}\n內容：{userMessage}";
                     await lineClient.PushMessageAsync(developerId, alertMsg);
-                    continue;
+
+                    // (3) 執行自動退出邏輯（使用 HttpClient 直接呼叫 API，避免 SDK 編譯錯誤）
+                    try 
+                    {
+                        string sourceType = ev.source?.type ?? "";
+                        if (sourceType == "group" || sourceType == "room")
+                        {
+                            using (var httpClient = new HttpClient())
+                            {
+                                // 設定認證標頭
+                                httpClient.DefaultRequestHeaders.Authorization = 
+                                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                                
+                                // 判斷群組或聊天室路徑
+                                string endpoint = sourceType == "group" 
+                                    ? $"https://api.line.me/v2/bot/group/{groupId}/leave"
+                                    : $"https://api.line.me/v2/bot/room/{groupId}/leave";
+
+                                // 發送 POST 請求
+                                await httpClient.PostAsync(endpoint, null);
+                            }
+                        }
+                    }
+                    catch (Exception ex) 
+                    {
+                        // 僅記錄錯誤，不讓退群失敗導致整個 Webhook 當掉
+                        Console.WriteLine($"Leave Error: {ex.Message}");
+                    }
+                    
+                    continue; // 終止後續邏輯執行
                 }
             }
 
