@@ -115,6 +115,43 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
 
+                // --- [開發者指令] 導入模板 [來源暱稱] ---
+                if (cmd.StartsWith("導入"))
+                {
+                    if (!isDeveloper) return Results.Ok();
+                    string sourceNickName = userMessage.Replace("導入", "").Trim();
+                    
+                    // 尋找來源 ID
+                    var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
+                    var files = Directory.GetFiles(folderPath, "*.json");
+                    string? sourceId = files.Select(f => new { id = Path.GetFileNameWithoutExtension(f), d = JsonConvert.DeserializeObject<VolleyData>(File.ReadAllText(f)) })
+                                            .FirstOrDefault(x => x.d?.GroupName == sourceNickName)?.id;
+
+                    if (sourceId == null) {
+                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到名為「{sourceNickName}」的模板來源。");
+                        continue;
+                    }
+
+                    // 記錄轉移關係 (Key: 目前執行指令的開發者, Value: 來源ID|目標群組ID)
+                    manager.PendingImports[userId] = $"{sourceId}|{groupId}";
+
+                    await lineClient.ReplyMessageAsync(replyToken, 
+                        $"📋 【導入模板確認】\n" +
+                        $"------------------\n" +
+                        $"來源模板：{sourceNickName}\n" +
+                        $"套用目標：{data.GroupName} ({groupId})\n" +
+                        $"------------------\n" +
+                        $"⚠️ 將複製以下設定：\n" +
+                        $"● 賽季時間與比賽時段\n" +
+                        $"● 季打/冷氣費用與預收金額\n" +
+                        $"● 完整季打名單 ({manager.Load(sourceId).MaleQuarterly.Count + manager.Load(sourceId).FemaleQuarterly.Count} 位)\n" +
+                        $"● 自動重置與截止期限設定\n\n" +
+                        $"注意：現有報名、對帳紀錄將清空，並開啟新 GAS 分頁。\n" +
+                        $"確認請輸入：確認導入");
+                    continue;
+                }
+
+                // --- [開發者指令] 確認執行導入 ---
                 if (cmd == "確認導入")
                 {
                     if (!isDeveloper || !manager.PendingImports.ContainsKey(userId)) return Results.Ok();
