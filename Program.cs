@@ -115,43 +115,6 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             {
                 if (!isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限開發者使用。"); continue; }
 
-                // --- [開發者指令] 導入模板 [來源暱稱] ---
-                if (cmd.StartsWith("導入"))
-                {
-                    if (!isDeveloper) return Results.Ok();
-                    string sourceNickName = userMessage.Replace("導入", "").Trim();
-                    
-                    // 尋找來源 ID
-                    var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GroupsData");
-                    var files = Directory.GetFiles(folderPath, "*.json");
-                    string? sourceId = files.Select(f => new { id = Path.GetFileNameWithoutExtension(f), d = JsonConvert.DeserializeObject<VolleyData>(File.ReadAllText(f)) })
-                                            .FirstOrDefault(x => x.d?.GroupName == sourceNickName)?.id;
-
-                    if (sourceId == null) {
-                        await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到名為「{sourceNickName}」的模板來源。");
-                        continue;
-                    }
-
-                    // 記錄轉移關係 (Key: 目前執行指令的開發者, Value: 來源ID|目標群組ID)
-                    manager.PendingImports[userId] = $"{sourceId}|{groupId}";
-
-                    await lineClient.ReplyMessageAsync(replyToken, 
-                        $"📋 【導入模板確認】\n" +
-                        $"------------------\n" +
-                        $"來源模板：{sourceNickName}\n" +
-                        $"套用目標：{data.GroupName} ({groupId})\n" +
-                        $"------------------\n" +
-                        $"⚠️ 將複製以下設定：\n" +
-                        $"● 賽季時間與比賽時段\n" +
-                        $"● 季打/冷氣費用與預收金額\n" +
-                        $"● 完整季打名單 ({manager.Load(sourceId).MaleQuarterly.Count + manager.Load(sourceId).FemaleQuarterly.Count} 位)\n" +
-                        $"● 自動重置與截止期限設定\n\n" +
-                        $"注意：現有報名、對帳紀錄將清空，並開啟新 GAS 分頁。\n" +
-                        $"確認請輸入：確認導入");
-                    continue;
-                }
-
-                // --- [開發者指令] 確認執行導入 ---
                 if (cmd == "確認導入")
                 {
                     if (!isDeveloper || !manager.PendingImports.ContainsKey(userId)) return Results.Ok();
@@ -162,10 +125,14 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                     try {
                         var sourceData = manager.Load(sourceId);
-                        var targetData = manager.Load(targetId);
+                        // 重要：直接操作當前 Webhook 生命週期的 data 物件，確保稍後的存檔一致
+                        // 如果 targetId 跟目前的 groupId 不同，才 load 新的
+                        var targetData = (targetId == groupId) ? data : manager.Load(targetId);
 
-                        // --- 核心轉移邏輯：選擇性複製屬性 ---
-                        // 1. 複製基礎設定
+                        // --- 校正 A：繼承關鍵網址 ---
+                        targetData.GasUrl = sourceData.GasUrl; 
+
+                        // --- 校正 B：基礎設定賦值 ---
                         targetData.SeasonStart = sourceData.SeasonStart;
                         targetData.SeasonEnd = sourceData.SeasonEnd;
                         targetData.MatchDay = sourceData.MatchDay;
@@ -185,31 +152,35 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         targetData.CancelDeadlineHour = sourceData.CancelDeadlineHour;
                         targetData.CancelDeadlineMinute = sourceData.CancelDeadlineMinute;
                         
-                        // 2. 複製季打名單
                         targetData.MaleQuarterly = new HashSet<string>(sourceData.MaleQuarterly);
                         targetData.FemaleQuarterly = new HashSet<string>(sourceData.FemaleQuarterly);
 
-                        // 3. 清理與保護
+                        // --- 校正 C：清理狀態與重置名單 ---
                         targetData.MaleParticipants.Clear(); targetData.FemaleParticipants.Clear();
                         targetData.MaleWaitingList.Clear(); targetData.FemaleWaitingList.Clear();
                         targetData.AcRecords.Clear();
                         targetData.ClosedDates.Clear();
-                        targetData.IsAuthorized = true; // 強制開啟授權
-                        
-                        // 4. 恢復為季打狀態並存檔
+                        targetData.IsAuthorized = true; 
+                        targetData.SetupStep = 0; // 確保不再跳出初始化提示
+                        targetData.IsRecentlyReset = true; // 標記為已手動重置，防止自動服務再次觸發
+
                         targetData.ResetToQuarterly();
+                        
+                        // 存檔
                         manager.Save(targetId, targetData);
                         manager.PendingImports.Remove(userId);
 
-                        // 5. 觸發 GAS (這會因 ID 不同而在同個 URL 下建立新分頁)
-                        await targetData.SyncToSheets(lineClient, targetId, true);
+                        // --- 校正 D：非阻塞異步同步 ---
+                        _ = Task.Run(async () => {
+                            await targetData.SyncToSheets(lineClient, targetId, true);
+                        });
 
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 導入成功！\n目標群組「{targetData.GroupName}」已完成初始化並同步至雲端表格。");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 導入成功！\n群組「{targetData.GroupName}」已繼承「{sourceData.GroupName}」之設定。\n雲端表格同步中，請稍候...");
                     }
                     catch (Exception ex) {
                         await lineClient.ReplyMessageAsync(replyToken, $"❌ 導入過程出錯：{ex.Message}");
                     }
-                    continue;
+                    return Results.Ok();
                 }
 
                 // 1. 發起刪除申請：清除群組資料 [暱稱]
