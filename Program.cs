@@ -208,8 +208,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         manager.PendingImports.Remove(userId);
 
                         // --- 校正 D：非阻塞異步同步 ---
+                        // 獲取當前校準後的比賽日期，作為 targetDateKey 傳入
+                        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+                        string forceDateKey = targetData.GetCalibratedMatchDate(now).ToString("yyyyMMdd");
+
                         _ = Task.Run(async () => {
-                            await targetData.SyncToSheets(lineClient, targetId, true);
+                            await targetData.SyncToSheets(lineClient, targetId, true, forceDateKey);
                         });
 
                         await lineClient.ReplyMessageAsync(replyToken, $"✅ 導入成功！\n群組「{targetData.GroupName}」已繼承「{sourceData.GroupName}」之設定。\n雲端表格同步中，請稍候...");
