@@ -64,29 +64,19 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
             if (string.IsNullOrEmpty(userMessage)) continue;
 
-            // 1. [PlanA] 授權檢查邏輯 (排除開發者，開發者在任何地方皆可作業)
-            // 定義所有「功能性關鍵字」
-            var allCommands = new List<string> { 
-                "我的ID", "重置", "確認重置", "系統初始化", "取消設定", "確認完成", "管理員指令", 
-                "設定雲端網址", "設定季打費用", "設定冷氣費用", "設定季打時間", "設定重置時間", 
-                "設定報名期限", "設定取消期限", "移除報名期限", "移除取消期限", "增加季打", 
-                "更新季打成員", "移除季打", "修改季打成員名稱", "查詢季打", "增加報名", 
-                "取消報名", "幫助", "指令", "查詢", "申請綁定", "新增管理員", "移除管理員", "授權群組", "移除群組授權",
-                "查詢現有管理員", "查詢已授權群組", "目前設定", "取消重置時間", "開啟重置時間", "開發者指令", "清除群組資料", "確認刪除資料", "導入", "確認導入"
-            };
-            
-            bool isTriggeringCommand = allCommands.Any(c => userMessage.StartsWith(c)) || 
-                                       Regex.IsMatch(userMessage, @"^(\+|-)\s*([1-2])\s*(男|女)$") ||
-                                       Regex.IsMatch(userMessage, @"^(\d{8})\s*(開冷氣|關冷氣|無開場|有開場)$");
-
-            if (isTriggeringCommand && !isDeveloper && !data.IsAuthorized)
+            // 1. [PlanA] 授權檢查邏輯
+            // 開發者擁有最高權限不受限；其餘人在未授權狀態下「只能」使用「我的ID」
+            if (!isDeveloper && !data.IsAuthorized)
             {
-                await lineClient.ReplyMessageAsync(replyToken, "⚠️ 此群組尚未經過開發者授權使用，請聯繫開發者。");
-                
-                // 主動發送消息給開發者
-                string alertMsg = $"📢 【授權申請通知】\n有用戶在未授權群組嘗試使用指令。\n群組 ID：\n{groupId}\n用戶 ID：\n{userId}\n輸入內容：{userMessage}";
-                await lineClient.PushMessageAsync(developerId, alertMsg);
-                continue;
+                if (userMessage != "我的ID")
+                {
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 此群組尚未經過開發者授權使用，請聯繫開發者。");
+                    
+                    // 主動發送消息給開發者
+                    string alertMsg = $"📢 【授權申請通知】\n有用戶在未授權群組嘗試使用指令。\n群組 ID：\n{groupId}\n用戶 ID：\n{userId}\n輸入內容：{userMessage}";
+                    await lineClient.PushMessageAsync(developerId, alertMsg);
+                    continue;
+                }
             }
 
             if (userMessage == "我的ID")
@@ -539,7 +529,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
             if (isAdminCmd)
             {
-                if (!isAdmin) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限管理員使用。"); continue; }
+                if (!isAdmin && !isDeveloper) { await lineClient.ReplyMessageAsync(replyToken, "❌ 權限不足：此指令僅限管理員使用。"); continue; }
 
                 // 1. 先處理「已經在等待確認」的情況
                 if (data.ConfirmReset)
@@ -1502,4 +1492,3 @@ public class VolleyManager {
 
 
 #endregion
-
