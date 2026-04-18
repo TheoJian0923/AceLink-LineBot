@@ -1470,33 +1470,51 @@ public class ResetTaskService : BackgroundService {
                 foreach (var file in files) {
                     string gId = Path.GetFileNameWithoutExtension(file);
                     var data = _manager.Load(gId);
-                    if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) {
+                    if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) 
+                    {
+                        // 1. 檢查開關
+                        if (!data.IsResetEnabled) continue; 
 
-                        // 【新增判定】如果開關被關閉，則跳過重置
-                        if (!data.IsResetEnabled) 
+                        // 2. 處理「手動重置過」的狀態
+                        if (data.IsRecentlyReset) 
                         {
+                            data.IsRecentlyReset = false; 
+                            _manager.Save(gId, data);
                             continue; 
                         }
 
-                        if (data.IsRecentlyReset) 
+                        try 
                         {
-                            data.IsRecentlyReset = false; // 重設開關，讓下週能正常運作
-                            _manager.Save(gId, data);
-                            continue; // 跳過這次自動重置
-                        }
+                            // 3. 執行重置與存檔 (表格修改時間正確，代表這兩行沒問題)
+                            data.ResetToQuarterly(); 
+                            _manager.Save(gId, data); 
 
-                        // 1. 執行重置邏輯
-                        data.ResetToQuarterly(); 
-                        _manager.Save(gId, data); 
-                        _ = data.SyncToSheets(_lineClient, gId);
+                            // 4. 【關鍵修改】改為 await，確保同步完畢才發訊息
+                            // 這樣可以避免網路連線競爭，並確保下一行執行時網路是空的
+                            await data.SyncToSheets(_lineClient, gId);
 
-                        // 2. 主動推播重置完成訊息與當前名單
-                        string resetMsg = $"🧹 【AceLink 系統自動重置完成】\n本週比賽報名已開啟！\n\n{data.GetFormattedList("🏐 本週預設名單")}";
-                        try {
+                            // 5. 嘗試取得名單 (若這裡出錯會被 catch 捕捉，不會讓程式當掉)
+                            string listContent = data.GetFormattedList("🏐 本週預設名單");
+                            string resetMsg = $"🧹 【AceLink 系統自動重置完成】\n本週比賽報名已開啟！\n\n{listContent}";
+
+                            // 6. 執行推播
                             await _lineClient.PushMessageAsync(gId, resetMsg);
-                        } catch (Exception ex) {
-                            Console.WriteLine($"Push reset message failed for {gId}: {ex.Message}");
+                        } 
+                        catch (Exception ex) 
+                        {
+                            // 7. 【測試核心】如果失敗，發送診斷報告給開發者
+                            // 這樣你就能看到到底是 "Message Too Long" 還是 "Socket Timeout"
+                            string errorInfo = $"❌ 重置推播失敗報告\n群組: {gId}\n原因: {ex.Message}";
+                            try {
+                                await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", errorInfo);
+                            } catch {
+                                // 如果連給開發者的推播都噴錯，直接寫進系統日誌
+                                Console.WriteLine(errorInfo);
+                            }
                         }
+                        
+                        // 避免在一分鐘內重複執行
+                        await Task.Delay(60000, stoppingToken);
                     }
                 }
             }
