@@ -392,7 +392,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 比賽時間：週({data.MatchDay}) {data.MatchHour:D2}:{data.MatchMinute:D2}");
                     sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
+                    sb.AppendLine($"● 自動重置：{(data.IsResetEnabled ? "開啟" : "關閉")}");
                     sb.AppendLine($"● 重置時間：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
+                    sb.AppendLine($"● 近期重置標記：{(data.IsRecentlyReset ? "是(下次將跳過)" : "否")}");
                     sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 雲端網址：{(string.IsNullOrEmpty(data.GasUrl) ? "未設定" : "已設定")}");
@@ -1479,14 +1481,8 @@ public class ResetTaskService : BackgroundService {
                         try {
                             var data = _manager.Load(gId);
                             
-                            // 【診斷代碼】如果時間吻合，但沒有成功往下跑，就發送原因
-                            if (now.Hour == data.ResetHour && now.Minute == data.ResetMinute) 
+                            if (now.Hour == data.ResetHour && now.Minute == data.ResetMinute && now.DayOfWeek == data.ResetDay) 
                             {
-                                if (now.DayOfWeek != data.ResetDay) return; // 星期不對就安靜
-
-                                string debugInfo = $"🔍 診斷：時間已到 ({now:HH:mm})\n群組：{gId}\n開關：{data.IsResetEnabled}\n近期重置標記：{data.IsRecentlyReset}";
-                                await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", debugInfo);
-
                                 // 1. 檢查開關
                                 if (!data.IsResetEnabled) return; 
 
@@ -1495,7 +1491,6 @@ public class ResetTaskService : BackgroundService {
                                 {
                                     data.IsRecentlyReset = false; 
                                     _manager.Save(gId, data);
-                                    await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", $"⚠️ 群組 {gId} 因為 IsRecentlyReset 為 true 被跳過執行。");
                                     return; 
                                 }
 
@@ -1506,7 +1501,12 @@ public class ResetTaskService : BackgroundService {
                                 // 4. 同步至雲端
                                 await data.SyncToSheets(_lineClient, gId);
                                 
-                                await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", $"✅ 群組 {gId} 自動重置成功並同步。");
+                                /*
+                                // 可選：重置成功後向群組發送公告
+                                string listContent = data.GetFormattedList("🏐 本週預設名單");
+                                string resetMsg = $"🧹 【AceLink 自動重置完成】\n本週比賽報名已開啟！\n\n{listContent}";
+                                await _lineClient.PushMessageAsync(gId, resetMsg);
+                                */
                             }
                         }
                         catch (Exception ex) {
