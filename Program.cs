@@ -1467,64 +1467,64 @@ public class ResetTaskService : BackgroundService {
             var nowUtc = DateTime.UtcNow;
             var taiwanZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
             var now = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, taiwanZone);
+            
             if (Directory.Exists("GroupsData")) {
                 var files = Directory.GetFiles("GroupsData", "*.json");
+                var tasks = new List<Task>();
+
                 foreach (var file in files) {
                     string gId = Path.GetFileNameWithoutExtension(file);
-                    var data = _manager.Load(gId);
-                    if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) 
-                    {
-                        // 1. 檢查開關
-                        if (!data.IsResetEnabled) continue; 
+                    
+                    // 為了避免大規模併發讀寫衝突，將每個群組處理邏輯封裝
+                    tasks.Add(Task.Run(async () => {
+                        try {
+                            var data = _manager.Load(gId);
+                            
+                            // 判定是否達到重置時間 (且這分鐘內還沒處理過)
+                            if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) 
+                            {
+                                // 1. 檢查開關
+                                if (!data.IsResetEnabled) return; 
 
-                        // 2. 處理「手動重置過」的狀態
-                        if (data.IsRecentlyReset) 
-                        {
-                            data.IsRecentlyReset = false; 
-                            _manager.Save(gId, data);
-                            continue; 
+                                // 2. 處理「本週已手動重置過」的狀態
+                                if (data.IsRecentlyReset) 
+                                {
+                                    data.IsRecentlyReset = false; 
+                                    _manager.Save(gId, data);
+                                    return; 
+                                }
+
+                                // 3. 執行重置與存檔
+                                data.ResetToQuarterly(); 
+                                _manager.Save(gId, data); 
+
+                                // 4. 同步至雲端 (多群組併發呼叫)
+                                await data.SyncToSheets(_lineClient, gId);
+
+                                // 5. 取得名單內容 (選用推播)
+                                // string listContent = data.GetFormattedList("🏐 本週預設名單");
+                                // await _lineClient.PushMessageAsync(gId, $"🧹 【AceLink 自動重置完成】\n{listContent}");
+                            }
                         }
-
-                        try 
-                        {
-                            // 3. 執行重置與存檔 (表格修改時間正確，代表這兩行沒問題)
-                            data.ResetToQuarterly(); 
-                            _manager.Save(gId, data); 
-
-                            // 4. 【關鍵修改】改為 await，確保同步完畢才發訊息
-                            // 這樣可以避免網路連線競爭，並確保下一行執行時網路是空的
-                            await data.SyncToSheets(_lineClient, gId);
-
-                            // 5. 嘗試取得名單 (若這裡出錯會被 catch 捕捉，不會讓程式當掉)
-                            string listContent = data.GetFormattedList("🏐 本週預設名單");
-                            string resetMsg = $"🧹 【AceLink 系統自動重置完成】\n本週比賽報名已開啟！\n\n{listContent}";
-
-                            // 6. 執行推播
-                            //await _lineClient.PushMessageAsync(gId, resetMsg);
-                        } 
-                        catch (Exception ex) 
-                        {
-                            // 7. 【測試核心】如果失敗，發送診斷報告給開發者
-                            // 這樣你就能看到到底是 "Message Too Long" 還是 "Socket Timeout"
-                            string errorInfo = $"❌ 重置推播失敗報告\n群組: {gId}\n原因: {ex.Message}";
+                        catch (Exception ex) {
+                            string errorInfo = $"❌ 重置異常報告\n群組: {gId}\n原因: {ex.Message}";
                             try {
                                 await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", errorInfo);
                             } catch {
-                                // 如果連給開發者的推播都噴錯，直接寫進系統日誌
                                 Console.WriteLine(errorInfo);
                             }
                         }
-                        
-                        // 避免在一分鐘內重複執行
-                        await Task.Delay(60000, stoppingToken);
-                    }
+                    }, stoppingToken));
                 }
+
+                // 同時啟動所有群組的檢查與處理，不互相阻塞
+                if (tasks.Any()) await Task.WhenAll(tasks);
             }
-            // 為了確保不重覆觸發，建議這裡保持 60000 (1分鐘)，但判斷式精確到分即可
-            await Task.Delay(61000, stoppingToken);
+
+            // 縮短檢查頻率至 30 秒，配合精確的分鐘判定，確保每一分鐘都會被掃描到至少一次
+            await Task.Delay(30000, stoppingToken);
         }
     }
-    
 }
 
 public class VolleyManager {
