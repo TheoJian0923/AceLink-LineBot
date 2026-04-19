@@ -888,7 +888,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 data.PrepaidFee = prepaid;
                                 manager.Save(groupId, data); 
                                 
-                                await lineClient.ReplyMessageAsync(replyToken, "⏳ 正在生成新賽季表格，請稍候...");
+                                await lineClient.ReplyMessageAsync(replyToken, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已切換至新分頁。");
                                 
                                 _ = Task.Run(async () => {
                                     try {
@@ -900,8 +900,10 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                         // 呼叫 GAS 同步 (isNewSeason = true)
                                         await data.SyncToSheets(lineClient, groupId, true);
                                         
-                                        await lineClient.PushMessageAsync(groupId, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已切換至新分頁。");
-                                    } catch {
+                                        //await lineClient.PushMessageAsync(groupId, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已切換至新分頁。");
+                                    } 
+                                    catch (Exception ex) 
+                                    {
                                         await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網路或 GAS 設定。");
                                     }
                                 });
@@ -1498,7 +1500,7 @@ public class ResetTaskService : BackgroundService {
                             string resetMsg = $"🧹 【AceLink 系統自動重置完成】\n本週比賽報名已開啟！\n\n{listContent}";
 
                             // 6. 執行推播
-                            await _lineClient.PushMessageAsync(gId, resetMsg);
+                            //await _lineClient.PushMessageAsync(gId, resetMsg);
                         } 
                         catch (Exception ex) 
                         {
