@@ -1475,14 +1475,18 @@ public class ResetTaskService : BackgroundService {
                 foreach (var file in files) {
                     string gId = Path.GetFileNameWithoutExtension(file);
                     
-                    // 為了避免大規模併發讀寫衝突，將每個群組處理邏輯封裝
                     tasks.Add(Task.Run(async () => {
                         try {
                             var data = _manager.Load(gId);
                             
-                            // 判定是否達到重置時間 (且這分鐘內還沒處理過)
-                            if (now.DayOfWeek == data.ResetDay && now.Hour == data.ResetHour && now.Minute == data.ResetMinute) 
+                            // 【診斷代碼】如果時間吻合，但沒有成功往下跑，就發送原因
+                            if (now.Hour == data.ResetHour && now.Minute == data.ResetMinute) 
                             {
+                                if (now.DayOfWeek != data.ResetDay) return; // 星期不對就安靜
+
+                                string debugInfo = $"🔍 診斷：時間已到 ({now:HH:mm})\n群組：{gId}\n開關：{data.IsResetEnabled}\n近期重置標記：{data.IsRecentlyReset}";
+                                await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", debugInfo);
+
                                 // 1. 檢查開關
                                 if (!data.IsResetEnabled) return; 
 
@@ -1491,6 +1495,7 @@ public class ResetTaskService : BackgroundService {
                                 {
                                     data.IsRecentlyReset = false; 
                                     _manager.Save(gId, data);
+                                    await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", $"⚠️ 群組 {gId} 因為 IsRecentlyReset 為 true 被跳過執行。");
                                     return; 
                                 }
 
@@ -1498,12 +1503,10 @@ public class ResetTaskService : BackgroundService {
                                 data.ResetToQuarterly(); 
                                 _manager.Save(gId, data); 
 
-                                // 4. 同步至雲端 (多群組併發呼叫)
+                                // 4. 同步至雲端
                                 await data.SyncToSheets(_lineClient, gId);
-
-                                // 5. 取得名單內容 (選用推播)
-                                // string listContent = data.GetFormattedList("🏐 本週預設名單");
-                                // await _lineClient.PushMessageAsync(gId, $"🧹 【AceLink 自動重置完成】\n{listContent}");
+                                
+                                await _lineClient.PushMessageAsync("U4ae0a4b6b86b73455ca52ccab9ebc652", $"✅ 群組 {gId} 自動重置成功並同步。");
                             }
                         }
                         catch (Exception ex) {
@@ -1517,11 +1520,9 @@ public class ResetTaskService : BackgroundService {
                     }, stoppingToken));
                 }
 
-                // 同時啟動所有群組的檢查與處理，不互相阻塞
                 if (tasks.Any()) await Task.WhenAll(tasks);
             }
 
-            // 縮短檢查頻率至 30 秒，配合精確的分鐘判定，確保每一分鐘都會被掃描到至少一次
             await Task.Delay(30000, stoppingToken);
         }
     }
