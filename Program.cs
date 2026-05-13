@@ -881,7 +881,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         data.PrepaidFee = prepaid;
                         manager.Save(groupId, data); 
                         
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n預收金額：{data.PrepaidFee}\n(比賽時間沿用原設定：每週{GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2})\n雲端表格已切換至新分頁。");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n預收金額：{data.PrepaidFee}\n(比賽時間沿用原設定：每週{data.GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2})\n雲端表格已切換至新分頁。");
                         
                         _ = Task.Run(async () => {
                             try {
@@ -1424,7 +1424,7 @@ public class VolleyData
         ClosedDates.Clear();
         AcRecords.Clear(); // 🚩 必加：避免舊的冷氣紀錄帶到新的一週
     }
-    private string GetDayString(DayOfWeek d) => d switch { DayOfWeek.Monday=>"一", DayOfWeek.Tuesday=>"二", DayOfWeek.Wednesday=>"三", DayOfWeek.Thursday=>"四", DayOfWeek.Friday=>"五", DayOfWeek.Saturday=>"六", DayOfWeek.Sunday=>"日", _=>"" };
+    public string GetDayString(DayOfWeek d) => d switch { DayOfWeek.Monday=>"一", DayOfWeek.Tuesday=>"二", DayOfWeek.Wednesday=>"三", DayOfWeek.Thursday=>"四", DayOfWeek.Friday=>"五", DayOfWeek.Saturday=>"六", DayOfWeek.Sunday=>"日", _=>"" };
     public bool IsDeadlinePassed(DayOfWeek? targetDay, int h, int m)
     {
         if (!targetDay.HasValue) return false;
