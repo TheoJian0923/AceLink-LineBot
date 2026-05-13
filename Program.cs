@@ -947,12 +947,10 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     continue;
                 }
 
-                // 修正：將 lines.Count 改為 lines.Length
-                if (cmd == "修改季打成員名稱" && lines.Length >= 3)
+                if (cmd == "修改季打成員名稱" && lines.Count >= 3)
                 {
                     var oldName = lines[1].Trim();
                     var newName = lines[2].Trim();
-                    
                     if (string.IsNullOrEmpty(oldName) || string.IsNullOrEmpty(newName))
                     {
                         await lineClient.ReplyMessageAsync(replyToken, "❌ 格式錯誤：\n修改季打成員名稱\n舊名\n新名");
@@ -965,17 +963,15 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                     if (found)
                     {
-                        // 修正：現在 VolleyData 已有 OldName 與 NewName 屬性，可正常賦值
                         data.OldName = oldName;
                         data.NewName = newName;
 
-                        manager.Save(gId, data);
+                        // 修正：將 gId 改為程式碼上文定義的 groupId
+                        manager.Save(groupId, data);
                         await lineClient.ReplyMessageAsync(replyToken, $"✅ 已將季打成員 [{oldName}] 修改為 [{newName}]");
                         
-                        // 同步至試算表
                         _ = SyncToSheets(data);
 
-                        // 同步後清除更名標記
                         data.OldName = null;
                         data.NewName = null;
                     }
