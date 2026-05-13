@@ -949,18 +949,35 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                 if (cmd == "修改季打成員名稱" && lines.Count >= 3)
                 {
-                    string oldName = lines[1], newName = lines[2];
+                    var oldName = lines.Length > 1 ? lines[1].Trim() : "";
+                    var newName = lines.Length > 2 ? lines[2].Trim() : "";
+                    if (string.IsNullOrEmpty(oldName) || string.IsNullOrEmpty(newName))
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, "❌ 格式錯誤：\n修改季打成員名稱\n舊名\n新名");
+                        return Results.Ok();
+                    }
+
                     bool found = false;
                     if (data.MaleQuarterly.Contains(oldName)) { data.MaleQuarterly.Remove(oldName); data.MaleQuarterly.Add(newName); found = true; }
-                    if (data.FemaleQuarterly.Contains(oldName)) { data.FemaleQuarterly.Remove(oldName); data.FemaleQuarterly.Add(newName); found = true; }
+                    else if (data.FemaleQuarterly.Contains(oldName)) { data.FemaleQuarterly.Remove(oldName); data.FemaleQuarterly.Add(newName); found = true; }
+
                     if (found)
                     {
-                        var keys = data.WhiteList.Where(x => x.Value == oldName).Select(x => x.Key).ToList();
-                        foreach (var k in keys) data.WhiteList[k] = newName;
-                        manager.Save(groupId, data); _ = data.SyncToSheets(lineClient, groupId);
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ {oldName} 已更名為 {newName}");
+                        // 設定更名訊息以便同步至 GAS
+                        data.OldName = oldName;
+                        data.NewName = newName;
+
+                        manager.Save(gId, data);
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已將季打成員 [{oldName}] 修改為 [{newName}]");
+                        
+                        // 同步至試算表
+                        _ = SyncToSheets(data);
+
+                        // 同步後清除更名標記，避免下次點名同步重複觸發更名邏輯
+                        data.OldName = null;
+                        data.NewName = null;
                     }
-                    continue;
+                    else await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到成員: {oldName}");
                 }
 
                 if (cmd == "查詢季打")
@@ -1174,6 +1191,8 @@ public class VolleyData
     public bool ConfirmReset { get; set; } = false;
     public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
     public bool IsResetEnabled { get; set; } = true; // 預設為開啟自動重置
+    public string? OldName { get; set; } = null;
+    public string? NewName { get; set; } = null;
 
     public DateTime GetCalibratedMatchDate(DateTime now) {
         // 取得本週五的日期基準
