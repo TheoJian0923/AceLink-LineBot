@@ -958,25 +958,45 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
 
                     bool found = false;
+
+                    // 1. 更新季打名單 (Quarterly)
                     if (data.MaleQuarterly.Contains(oldName)) { data.MaleQuarterly.Remove(oldName); data.MaleQuarterly.Add(newName); found = true; }
                     else if (data.FemaleQuarterly.Contains(oldName)) { data.FemaleQuarterly.Remove(oldName); data.FemaleQuarterly.Add(newName); found = true; }
 
                     if (found)
                     {
+                        // 2. 同步更新「當週報名名單」(Participants)
+                        for (int i = 0; i < data.MaleParticipants.Count; i++) if (data.MaleParticipants[i] == oldName) data.MaleParticipants[i] = newName;
+                        for (int i = 0; i < data.FemaleParticipants.Count; i++) if (data.FemaleParticipants[i] == oldName) data.FemaleParticipants[i] = newName;
+
+                        // 3. 同步更新「候補名單」(WaitingList)
+                        for (int i = 0; i < data.MaleWaitingList.Count; i++) if (data.MaleWaitingList[i] == oldName) data.MaleWaitingList[i] = newName;
+                        for (int i = 0; i < data.FemaleWaitingList.Count; i++) if (data.FemaleWaitingList[i] == oldName) data.FemaleWaitingList[i] = newName;
+
+                        // 4. 同步更新「LINE 帳號綁定名單」(WhiteList)
+                        var userToUpdate = data.WhiteList.Where(x => x.Value == oldName).Select(x => x.Key).ToList();
+                        foreach (var userIdKey in userToUpdate) data.WhiteList[userIdKey] = newName;
+
+                        // 5. 準備傳送給 GAS 的標記
                         data.OldName = oldName;
                         data.NewName = newName;
 
-                        // 修正：將 gId 改為程式碼上文定義的 groupId
                         manager.Save(groupId, data);
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 已將季打成員 [{oldName}] 修改為 [{newName}]");
                         
-                        // 修正語法錯誤：改為呼叫物件實例的方法並帶入正確參數
+                        // 6. 立即同步至雲端 (記得帶入參數)
                         _ = data.SyncToSheets(lineClient, groupId);
 
+                        // 7. 回覆成功訊息，並顯示更新後的報名狀態
+                        string currentStatus = data.GetFormattedList($"✅ 已將 [{oldName}] 修改為 [{newName}]");
+                        await lineClient.ReplyMessageAsync(replyToken, currentStatus);
+
+                        // 清除暫存標記
                         data.OldName = null;
                         data.NewName = null;
                     }
                     else await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到成員: {oldName}");
+                    
+                    continue;
                 }
 
                 if (cmd == "查詢季打")
@@ -1380,6 +1400,8 @@ public class VolleyData
             matchDate = targetDate.ToString("yyyy/MM/dd"), 
             currentParticipants = finalParticipants, 
             quarterlyMembers = MaleQuarterly.Concat(FemaleQuarterly).ToList(), 
+            oldName = this.OldName,
+            newName = this.NewName,
             isAcOn = effectiveAcOn, 
             isClosed = ClosedDates.GetValueOrDefault(dKey, false), 
             quarterlyFee = QuarterlyFee, 
