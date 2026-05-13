@@ -970,7 +970,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         manager.Save(groupId, data);
                         await lineClient.ReplyMessageAsync(replyToken, $"✅ 已將季打成員 [{oldName}] 修改為 [{newName}]");
                         
-                        _ = SyncToSheets(data);
+                        // 修正語法錯誤：改為呼叫物件實例的方法並帶入正確參數
+                        _ = data.SyncToSheets(lineClient, groupId);
 
                         data.OldName = null;
                         data.NewName = null;
