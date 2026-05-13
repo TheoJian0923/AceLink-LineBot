@@ -828,7 +828,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     continue;
                 }
 
-                if (cmd == "設定季打時間" && lines.Count >= 6)
+                if (cmd == "設定季打時間" && lines.Count >= 4)
                 {
                     var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
                     bool isForce = userMessage.Contains("強制更新");
@@ -871,46 +871,33 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         }
                     }
 
-                    // --- 通過檢查後，執行原本的換季邏輯 ---
-                    data.SeasonStart = lines[1]; 
-                    data.SeasonEnd = lines[2];
+                    // --- 通過檢查後，執行原本的換季邏輯 (簡化輸入版本) ---
+                    data.SeasonStart = lines[1].Trim(); 
+                    data.SeasonEnd = lines[2].Trim();
                     
-                    if (Enum.TryParse<DayOfWeek>(lines[3], true, out var day))
+                    // 費用位於 lines[3]
+                    if (int.TryParse(lines[3].Trim(), out int prepaid))
                     {
-                        data.MatchDay = day;
-                        string timeStr = lines[4].Replace(":", "").Trim();
+                        data.PrepaidFee = prepaid;
+                        manager.Save(groupId, data); 
                         
-                        if (timeStr.Length >= 3 && int.TryParse(timeStr.Substring(0, timeStr.Length - 2), out int h) && int.TryParse(timeStr.Substring(timeStr.Length - 2), out int m))
-                        {
-                            data.MatchHour = h; 
-                            data.MatchMinute = m;
-
-                            if (int.TryParse(lines[5], out int prepaid))
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n預收金額：{data.PrepaidFee}\n(比賽時間沿用原設定：每週{GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2})\n雲端表格已切換至新分頁。");
+                        
+                        _ = Task.Run(async () => {
+                            try {
+                                // 重置名單（恢復季打，清空候補）
+                                data.ResetToQuarterly(); 
+                                data.IsRecentlyReset = true;
+                                manager.Save(groupId, data);
+                                
+                                // 呼叫 GAS 同步 (isNewSeason = true)
+                                await data.SyncToSheets(lineClient, groupId, true);
+                            } 
+                            catch (Exception ex) 
                             {
-                                data.PrepaidFee = prepaid;
-                                manager.Save(groupId, data); 
-                                
-                                await lineClient.ReplyMessageAsync(replyToken, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已切換至新分頁。");
-                                
-                                _ = Task.Run(async () => {
-                                    try {
-                                        // 重置名單（恢復季打，清空候補）
-                                        data.ResetToQuarterly(); 
-                                        data.IsRecentlyReset = true;
-                                        manager.Save(groupId, data);
-                                        
-                                        // 呼叫 GAS 同步 (isNewSeason = true)
-                                        await data.SyncToSheets(lineClient, groupId, true);
-                                        
-                                        //await lineClient.PushMessageAsync(groupId, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n雲端表格已切換至新分頁。");
-                                    } 
-                                    catch (Exception ex) 
-                                    {
-                                        await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網路或 GAS 設定。");
-                                    }
-                                });
+                                await lineClient.PushMessageAsync(groupId, "❌ 雲端同步失敗，請檢查網路或 GAS 設定。");
                             }
-                        }
+                        });
                     }
                     continue;
                 }
@@ -1417,6 +1404,10 @@ public class VolleyData
         try { 
             var json = JsonConvert.SerializeObject(payload);
             await client.PostAsync(GasUrl, new StringContent(json, Encoding.UTF8, "application/json")); 
+
+            // --- 關鍵：同步成功後立即清空，避免下次初始化誤用 ---
+            this.OldName = null;
+            this.NewName = null;
         } 
         catch (Exception ex) {
             Console.WriteLine($"GAS Sync Error: {ex.Message}");
