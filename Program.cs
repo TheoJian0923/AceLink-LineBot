@@ -760,8 +760,6 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
       設定季打時間 ↵ 
       開始日 ↵ 
       結束日 ↵ 
-      星期 ↵ 
-      時間 ↵ 
       預收金額
     ● 設定重置時間 ↵ 
       重置星期 ↵ 
