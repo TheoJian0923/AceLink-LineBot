@@ -224,7 +224,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         
                         targetData.IsAuthorized = true; 
                         targetData.SetupStep = 0; 
-                        targetData.IsRecentlyReset = true; 
+                        targetData.IsRecentlyReset = false; 
 
                         // 存檔
                         manager.Save(targetId, targetData);
@@ -727,7 +727,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                     // 呼叫 GAS 同步 (isNewSeason = true)
                                     await data.SyncToSheets(lineClient, groupId, true);
 
-                                    data.IsRecentlyReset = true;//防止下次重置影響名單
+                                    data.IsRecentlyReset = false;//初始化後不影響下次重置
                                     
                                     // 最後推播成功訊息
                                     await lineClient.PushMessageAsync(groupId, "🎊 【新賽季啟動成功！】\n✅ 雲端試算表已更新標題與預收金額。\n✅ 名單已重置為本季季打成員。\n祝本季打球愉快！");
@@ -885,7 +885,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             try {
                                 // 重置名單（恢復季打，清空候補）
                                 data.ResetToQuarterly(); 
-                                data.IsRecentlyReset = true;
+                                data.IsRecentlyReset = false;
                                 manager.Save(groupId, data);
                                 
                                 // 呼叫 GAS 同步 (isNewSeason = true)
