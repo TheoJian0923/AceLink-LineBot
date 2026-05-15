@@ -224,7 +224,6 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         
                         targetData.IsAuthorized = true; 
                         targetData.SetupStep = 0; 
-                        targetData.IsRecentlyReset = false; 
 
                         // 存檔
                         manager.Save(targetId, targetData);
@@ -394,7 +393,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
                     sb.AppendLine($"● 自動重置：{(data.IsResetEnabled ? "開啟" : "關閉")}");
                     sb.AppendLine($"● 重置時間：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
-                    sb.AppendLine($"● 近期重置標記：{(data.IsRecentlyReset ? "是(下次將跳過)" : "否")}");
+                    sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
                     sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 雲端網址：{(string.IsNullOrEmpty(data.GasUrl) ? "未設定" : "已設定")}");
@@ -721,13 +720,15 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                     // 重置名單（恢復季打，清空候補與關場紀錄）
                                     data.ResetToQuarterly(); 
                                     
+                                    // 記錄今日已手動完成重置，避免自動重置重複執行
+                                    var taipeiNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+                                    data.LastResetDate = taipeiNow.ToString("yyyyMMdd");
+
                                     // 存檔
-                                    manager.Save(groupId, data); 
+                                    manager.Save(groupId, data);
                                     
                                     // 呼叫 GAS 同步 (isNewSeason = true)
                                     await data.SyncToSheets(lineClient, groupId, true);
-
-                                    data.IsRecentlyReset = false;//初始化後不影響下次重置
                                     
                                     // 最後推播成功訊息
                                     await lineClient.PushMessageAsync(groupId, "🎊 【新賽季啟動成功！】\n✅ 雲端試算表已更新標題與預收金額。\n✅ 名單已重置為本季季打成員。\n祝本季打球愉快！");
@@ -884,8 +885,11 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         _ = Task.Run(async () => {
                             try {
                                 // 重置名單（恢復季打，清空候補）
-                                data.ResetToQuarterly(); 
-                                data.IsRecentlyReset = false;
+                                data.ResetToQuarterly();
+                                // 記錄今日已手動完成重置，避免自動重置重複執行
+                                var taipeiNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
+                                data.LastResetDate = taipeiNow.ToString("yyyyMMdd");
+                                
                                 manager.Save(groupId, data);
                                 
                                 // 呼叫 GAS 同步 (isNewSeason = true)
@@ -1193,7 +1197,7 @@ public class VolleyData
     public int PrepaidFee { get; set; } = 3000;
     public bool IsAcAlwaysOn = false;
     public bool ConfirmReset { get; set; } = false;
-    public bool IsRecentlyReset { get; set; } = false; //標示本週是否已經完成過「手動換季重置」
+    public string LastResetDate { get; set; } = ""; // 記錄最後一次執行的日期格式：20260515
     public bool IsResetEnabled { get; set; } = true; // 預設為開啟自動重置
     public string? OldName { get; set; } = null;
     public string? NewName { get; set; } = null;
@@ -1515,16 +1519,13 @@ public class ResetTaskService : BackgroundService {
                                 // 1. 檢查開關
                                 if (!data.IsResetEnabled) return; 
 
-                                // 2. 處理「本週已手動重置過」的狀態
-                                if (data.IsRecentlyReset) 
-                                {
-                                    data.IsRecentlyReset = false; 
-                                    _manager.Save(gId, data);
-                                    return; 
-                                }
+                                // 2. 檢查今天是否已經執行過重置
+                                string todayStr = now.ToString("yyyyMMdd");
+                                if (data.LastResetDate == todayStr) return; 
 
                                 // 3. 執行重置與存檔
                                 data.ResetToQuarterly(); 
+                                data.LastResetDate = todayStr; 
                                 _manager.Save(gId, data); 
 
                                 // 4. 同步至雲端
