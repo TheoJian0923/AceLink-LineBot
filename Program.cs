@@ -385,6 +385,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     var sb = new StringBuilder();
                     sb.AppendLine("⚙️ 當前群組設定參數");
                     sb.AppendLine("------------------");
+                    sb.AppendLine($"● 群組暱稱：{data.GroupName}");
+                    sb.AppendLine($"● 群組 ID ：{groupId}");
                     sb.AppendLine($"● 授權狀態：{(data.IsAuthorized ? "已授權" : "未授權")}");
                     sb.AppendLine($"● 管理員人數：{data.Admins.Count}");
                     sb.AppendLine($"● 球季期間：{data.SeasonStart} ~ {data.SeasonEnd}");
@@ -889,7 +891,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 // 記錄今日已手動完成重置，避免自動重置重複執行
                                 var taipeiNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
                                 data.LastResetDate = taipeiNow.ToString("yyyyMMdd");
-                                
+
                                 manager.Save(groupId, data);
                                 
                                 // 呼叫 GAS 同步 (isNewSeason = true)
