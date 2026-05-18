@@ -1369,10 +1369,7 @@ public class VolleyData
     public void Rebalance() {
         var allPlayers = new List<(string Name, string Gender, long Timestamp)>();
         
-        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
-        
-        // 💡 核心修正：將舊名單的相容時間戳設定為「過去的重置日時間（基設 2026/01/01）」，確保一定比新報名的人早！
+        // 💡 終極修正：將所有防呆的基準起點，全部推到絕對歷史過去（2026/01/01），確保任何新報名都排在後面
         long basePastTs = 20260101000000; 
         int seq = 0;
 
@@ -1384,7 +1381,6 @@ public class VolleyData
                 if (parts.Length >= 3 && long.TryParse(parts[2], out long ts)) {
                     allPlayers.Add((parts[0], parts[1], ts));
                 } else {
-                    // 防呆：如果是舊資料，給予歷史優先的基礎時間戳，並透過 seq++ 確保原本的 1~6 順序不變
                     string cleanName = parts[0];
                     string resolvedGender = defaultGender;
                     
@@ -1396,16 +1392,13 @@ public class VolleyData
             }
         }
 
-        // 依據原始名單所在的類型，傳入對應的預設性別進行舊資料反查
         ExtractToList(MaleParticipants, "男");
         ExtractToList(FemaleParticipants, "女");
         
-        // 候補名單的提取與解析
         if (IsGenderBalanceEnabled) {
             ExtractToList(MaleWaitingList, "男");
             ExtractToList(FemaleWaitingList, "女");
         } else {
-            // 關閉平衡時，MaleWaitingList 內可能有帶有性別標籤的舊資料，ExtractToList 內的 EndingWith 會自動妥善處理
             ExtractToList(MaleWaitingList, "男");
         }
 
@@ -1431,7 +1424,7 @@ public class VolleyData
                 FemaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp}");
             }
 
-            // 2. 處理外卡彈性借格 (男性滿 9 但女性有空缺，或者女性滿 9 但男性有空缺)
+            // 2. 處理外卡彈性借格 (在此必須嚴格防止特定 List 爆量導致畫面渲染蒸發)
             var remainingPool = malePool.Skip(mIdx).Select(x => new { x.Name, x.Gender, x.Timestamp })
                 .Concat(femalePool.Skip(fIdx).Select(x => new { x.Name, x.Gender, x.Timestamp }))
                 .OrderBy(x => x.Timestamp).ToList();
@@ -1439,30 +1432,33 @@ public class VolleyData
             foreach (var p in remainingPool) {
                 string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
                 if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
-                    if (p.Gender == "男") MaleParticipants.Add(saveStr);
-                    else FemaleParticipants.Add(saveStr);
+                    // 💡 終極修正：即便滿足總數小於 18，若自身性別正選已滿 9，必須實體分流塞入對方性別的格子，鎖死單邊數量！
+                    if (p.Gender == "男") {
+                        if (MaleParticipants.Count < 9) MaleParticipants.Add(saveStr);
+                        else FemaleParticipants.Add(saveStr);
+                    } else {
+                        if (FemaleParticipants.Count < 9) FemaleParticipants.Add(saveStr);
+                        else MaleParticipants.Add(saveStr);
+                    }
                 } else {
                     if (p.Gender == "男") MaleWaitingList.Add(saveStr);
                     else FemaleWaitingList.Add(saveStr);
                 }
             }
         } else {
-            // 💡 核心修正：先報先贏模式下，必須嚴格遵守實體格子限制（男上限 9、女上限 9），滿 9 人時自動橫向外卡溢出到對方的空缺格子，直到總數滿 18 為止！
+            // 先報先贏核心演算法：總正選上限 18，滿額丟入綜合候補
             foreach (var p in sortedPool) {
                 string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
                 
                 if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
-                    // 如果是男生，優先進男正選，若男正選滿 9 人，則彈性借用女正選的空缺格子
                     if (p.Gender == "男") {
                         if (MaleParticipants.Count < 9) MaleParticipants.Add(saveStr);
                         else FemaleParticipants.Add(saveStr);
                     } else {
-                        // 如果是女生，優先進女正選，若女正選滿 9 人，則彈性借用男正選的空缺格子
                         if (FemaleParticipants.Count < 9) FemaleParticipants.Add(saveStr);
                         else MaleParticipants.Add(saveStr);
                     }
                 } else {
-                    // 總人數滿 18 人後，不分男女，統一依據時間序進入綜合候補佇列
                     MaleWaitingList.Add(saveStr); 
                 }
             }
@@ -1593,18 +1589,15 @@ public class VolleyData
         MaleParticipants.Clear(); FemaleParticipants.Clear(); 
         MaleWaitingList.Clear(); FemaleWaitingList.Clear();
         
-        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
-        
-        int diffToReset = ((int)ResetDay - (int)now.DayOfWeek);
-        DateTime baseResetDate = now.Date.AddDays(diffToReset);
-        string 保底Timestamp = baseResetDate.ToString("yyyyMMdd") + $"{ResetHour:D2}{ResetMinute:D2}00";
+        // 💡 終極修正：季打重置時的時間戳，與防防呆基準完全同步設定為最低起點歷史線，確保順序絕對最優先且不受未來日期影響
+        long 保底Timestamp = 20260101000000;
+        int seq = 0;
 
         foreach (var m in MaleQuarterly.Take(MaxMale)) {
-            MaleParticipants.Add($"{m}|男|{保底Timestamp}");
+            MaleParticipants.Add($"{m}|男|{保底Timestamp + (seq++)}");
         }
         foreach (var f in FemaleQuarterly.Take(MaxFemale)) {
-            FemaleParticipants.Add($"{f}|女|{保底Timestamp}");
+            FemaleParticipants.Add($"{f}|女|{保底Timestamp + (seq++)}");
         }
         
         ClosedDates.Clear();
