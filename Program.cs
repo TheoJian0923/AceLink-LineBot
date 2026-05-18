@@ -546,22 +546,6 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     await lineClient.ReplyMessageAsync(replyToken, "✅ 已重新開啟自動重置功能。");
                     continue;
                 }
-
-                if (cmd == "開啟男女平衡")
-                {
-                    data.IsGenderBalanceEnabled = true;
-                    manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已開啟男女平衡機制（9男9女優先）。");
-                    continue;
-                }
-
-                if (cmd == "關閉男女平衡")
-                {
-                    data.IsGenderBalanceEnabled = false;
-                    manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已關閉男女平衡機制（切換為先報先贏模式）。");
-                    continue;
-                }
             }
             #endregion
 
@@ -1035,6 +1019,21 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     data.IsAcAlwaysOn = userMessage.Contains("保持開啟");
                     manager.Save(groupId, data);
                     await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}\n(此設定將套用於後續費用計算)");
+                    continue;
+                }
+                if (cmd == "開啟男女平衡")
+                {
+                    data.IsGenderBalanceEnabled = true;
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已開啟男女平衡機制（9男9女優先）。");
+                    continue;
+                }
+
+                if (cmd == "關閉男女平衡")
+                {
+                    data.IsGenderBalanceEnabled = false;
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已關閉男女平衡機制（切換為先報先贏模式）。");
                     continue;
                 }
             }
