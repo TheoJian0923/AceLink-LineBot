@@ -647,14 +647,14 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (cmd == "保持開啟" || cmd == "保持關閉") {
                             data.IsAcAlwaysOn = (cmd == "保持開啟");
                             data.SetupStep = 5; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 5/8] 設定男女平衡機制\n請輸入：保持開啟 或 保持關閉\n(若選擇保持關閉，則系統將採用「先報先贏」且不分性別進行單一候補隊列排序)");
+                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 5/8] 設定男女平衡機制\n請輸入：開啟 或 關閉\n(若選擇關閉，則系統將採用「先報先贏」且不分性別進行單一候補隊列排序)");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
                         continue;
                     }
                     if (data.SetupStep == 5)
                     {
-                        if (cmd == "保持開啟" || cmd == "保持關閉") {
-                            data.IsGenderBalanceEnabled = (cmd == "保持開啟");
+                        if (cmd == "開啟" || cmd == "關閉") {
+                            data.IsGenderBalanceEnabled = (cmd == "開啟");
                             data.SetupStep = 6; manager.Save(groupId, data);
                             await lineClient.ReplyMessageAsync(replyToken, $"✅ 男女平衡機制已設定為：{cmd}。\n\n[Step 6/8] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
