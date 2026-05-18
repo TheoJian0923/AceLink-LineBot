@@ -1167,7 +1167,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             if (action == "+")
                             {
                                 // 💡 核心時段攔截機制：非管理員且非開發者時，進行可報名區間檢核
-                                if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
+                                //if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
+                                if (!data.IsWithinRegistrationPeriod(out string formattedRange))
                                 {
                                     await lineClient.ReplyMessageAsync(replyToken, $"您好，現在非報名時間請在{formattedRange}時間段做報名動作，感謝您");
                                 }
