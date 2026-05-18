@@ -390,12 +390,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 授權狀態：{(data.IsAuthorized ? "已授權" : "未授權")}");
                     sb.AppendLine($"● 管理員人數：{data.Admins.Count}");
                     sb.AppendLine($"● 球季期間：{data.SeasonStart} ~ {data.SeasonEnd}");
-                    sb.AppendLine($"● 比賽時間：週({data.GetDayString(data.MatchDay)}) {data.MatchHour:D2}:{data.MatchMinute:D2}");
+                    sb.AppendLine($"● 比賽時間：週{data.GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2}");
                     sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
                     sb.AppendLine($"● 自動重置：{(data.IsResetEnabled ? "開啟" : "關閉")}");
                     sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? "開啟 (9男9女優先)" : "關閉 (先報先贏)")}");
-                    sb.AppendLine($"● 重置時間：週({data.GetDayString(data.ResetDay)}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
+                    sb.AppendLine($"● 重置時間：週{data.GetDayString(data.ResetDay)} {data.ResetHour:D2}:{data.ResetMinute:D2}");
                     sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
                     sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
@@ -408,7 +408,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             DayOfWeek.Thursday => "四", DayOfWeek.Friday => "五", DayOfWeek.Saturday => "六",
                             DayOfWeek.Sunday => "日", _ => eng
                         } : eng;
-                        regPeriodStatus = $"週({toChineseDayStr(data.RegistrationStartDay)}) {data.RegistrationStartTime} ~ 週({toChineseDayStr(data.RegistrationEndDay)}) {data.RegistrationEndTime}";
+                        regPeriodStatus = $"週{toChineseDayStr(data.RegistrationStartDay)} {data.RegistrationStartTime} ~ 週{toChineseDayStr(data.RegistrationEndDay)} {data.RegistrationEndTime}";
                     }
                     sb.AppendLine($"● 報名時段：{regPeriodStatus}");
                     
