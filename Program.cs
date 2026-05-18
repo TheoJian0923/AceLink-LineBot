@@ -1376,9 +1376,11 @@ public class VolleyData
         
         var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
-        long fallbackTs = long.Parse(now.ToString("yyyyMMddHHmmss"));
+        
+        // 💡 核心修正：將舊名單的相容時間戳設定為「過去的重置日時間（基設 2026/01/01）」，確保一定比新報名的人早！
+        long basePastTs = 20260101000000; 
+        int seq = 0;
 
-        // 💡 核心優化：增加對舊名單純文字格式的反查與防呆，避免名單被清空
         void ExtractToList(List<string> srcList, string defaultGender) {
             foreach (var item in srcList) {
                 if (string.IsNullOrEmpty(item)) continue;
@@ -1387,14 +1389,14 @@ public class VolleyData
                 if (parts.Length >= 3 && long.TryParse(parts[2], out long ts)) {
                     allPlayers.Add((parts[0], parts[1], ts));
                 } else {
-                    // 防呆：如果是沒有 | 的舊資料，或者是之前帶有 (男) (女) 的舊綜合候補字串
+                    // 防呆：如果是舊資料，給予歷史優先的基礎時間戳，並透過 seq++ 確保原本的 1~6 順序不變
                     string cleanName = parts[0];
                     string resolvedGender = defaultGender;
                     
                     if (cleanName.EndsWith("(男)")) { cleanName = cleanName.Substring(0, cleanName.Length - 3); resolvedGender = "男"; }
                     else if (cleanName.EndsWith("(女)")) { cleanName = cleanName.Substring(0, cleanName.Length - 3); resolvedGender = "女"; }
                     
-                    allPlayers.Add((cleanName, resolvedGender, fallbackTs));
+                    allPlayers.Add((cleanName, resolvedGender, basePastTs + (seq++)));
                 }
             }
         }
