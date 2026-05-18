@@ -937,6 +937,43 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd == "移除報名期限") { data.DeadlineDay = null; manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除報名期限。"); continue; }
                 if (cmd == "移除取消期限") { data.CancelDeadlineDay = null; manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除取消期限。"); continue; }
 
+                // 💡 管理員擴充指令：設定可報名時間
+                if (cmd == "設定可報名時間" && lines.Count >= 5)
+                {
+                    data.RegistrationStartDay = lines[1].Trim();
+                    data.RegistrationStartTime = lines[2].Trim();
+                    data.RegistrationEndDay = lines[3].Trim();
+                    data.RegistrationEndTime = lines[4].Trim();
+                    manager.Save(groupId, data);
+
+                    string toChineseDay(string eng) => Enum.TryParse<DayOfWeek>(eng, true, out var d) ? d switch {
+                        DayOfWeek.Monday => "星期一", DayOfWeek.Tuesday => "星期二", DayOfWeek.Wednesday => "星期三",
+                        DayOfWeek.Thursday => "星期四", DayOfWeek.Friday => "星期五", DayOfWeek.Saturday => "星期六",
+                        DayOfWeek.Sunday => "星期日", _ => eng
+                    } : eng;
+
+                    await lineClient.ReplyMessageAsync(replyToken, 
+                        $"📅 開放報名區間設定成功！\n" +
+                        $"------------------\n" +
+                        $"● 開始：{toChineseDay(data.RegistrationStartDay)} {data.RegistrationStartTime}\n" +
+                        $"● 結束：{toChineseDay(data.RegistrationEndDay)} {data.RegistrationEndTime}\n" +
+                        $"------------------\n" +
+                        $"⚠️ 非此時段內一般球員將無法使用 +1 報名功能（不限制管理員與取消報名）。");
+                    continue;
+                }
+
+                // 💡 管理員擴充指令：移除可報名時間
+                if (cmd == "移除可報名時間")
+                {
+                    data.RegistrationStartDay = "";
+                    data.RegistrationStartTime = "";
+                    data.RegistrationEndDay = "";
+                    data.RegistrationEndTime = "";
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除可報名時間限制，系統恢復為隨時可自由報名狀態。");
+                    continue;
+                }
+
                 if (cmd == "增加季打" || cmd == "更新季打成員" || cmd == "移除季打")
                 {
                     if (lines.Count >= 3)
@@ -1109,8 +1146,15 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                             if (action == "+")
                             {
-                                if (data.IsDeadlinePassed(data.DeadlineDay, data.DeadlineHour, data.DeadlineMinute))
+                                // 💡 核心時段攔截機制：非管理員且非開發者時，進行可報名區間檢核
+                                if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
+                                {
+                                    await lineClient.ReplyMessageAsync(replyToken, $"您好，現在非報名時間請在{formattedRange}時間段做報名動作，感謝您");
+                                }
+                                else if (data.IsDeadlinePassed(data.DeadlineDay, data.DeadlineHour, data.DeadlineMinute))
+                                {
                                     await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已超過報名截止時間。");
+                                }
                                 else 
                                 { 
                                     data.AddPlayer(finalName, count, gender); 
@@ -1232,6 +1276,76 @@ public class VolleyData
     public bool IsGenderBalanceEnabled { get; set; } = true; // 男女平衡機制開關，預設開啟
     public string? OldName { get; set; } = null;
     public string? NewName { get; set; } = null;
+    public string RegistrationStartDay { get; set; } = "";
+    public string RegistrationStartTime { get; set; } = "";
+    public string RegistrationEndDay { get; set; } = "";
+    public string RegistrationEndTime { get; set; } = "";
+
+    /// <summary>
+    /// 💡 核心新功能：判定當前時間是否落於目前名單日期同步的開放報名區間內
+    /// </summary>
+    public bool IsWithinRegistrationPeriod(out string formattedRange)
+    {
+        formattedRange = "";
+        
+        // 若未完整設定，代表不設限制（維持現狀）
+        if (string.IsNullOrEmpty(RegistrationStartDay) || string.IsNullOrEmpty(RegistrationStartTime) ||
+            string.IsNullOrEmpty(RegistrationEndDay) || string.IsNullOrEmpty(RegistrationEndTime))
+        {
+            return true;
+        }
+
+        // 解析星期字串
+        if (!Enum.TryParse(RegistrationStartDay, true, out DayOfWeek startDay) ||
+            !Enum.TryParse(RegistrationEndDay, true, out DayOfWeek endDay))
+        {
+            return true;
+        }
+
+        // 解析時間 (格式需為 4 位數，如 1200)
+        if (RegistrationStartTime.Length != 4 || RegistrationEndTime.Length != 4 ||
+            !int.TryParse(RegistrationStartTime.Substring(0, 2), out int startH) ||
+            !int.TryParse(RegistrationStartTime.Substring(2, 2), out int startM) ||
+            !int.TryParse(RegistrationEndTime.Substring(0, 2), out int endH) ||
+            !int.TryParse(RegistrationEndTime.Substring(2, 2), out int endM))
+        {
+            return true;
+        }
+
+        // 組裝親切的中文提示格式
+        string toChineseDay(DayOfWeek d) => d switch {
+            DayOfWeek.Monday => "星期一", DayOfWeek.Tuesday => "星期二", DayOfWeek.Wednesday => "星期三",
+            DayOfWeek.Thursday => "星期四", DayOfWeek.Friday => "星期五", DayOfWeek.Saturday => "星期六",
+            DayOfWeek.Sunday => "星期日", _ => ""
+        };
+        formattedRange = $"{toChineseDay(startDay)}{startH:D2}:{startM:D2} ~ {toChineseDay(endDay)}{endH:D2}:{endM:D2}";
+
+        // 核心邏輯：直接獲取當前名單看板對齊的下一場球賽絕對日期
+        DateTime matchDate = GetNextMatchDate();
+
+        // 以該場球賽當週的「星期一 00:00:00」作為時間軸原點基準
+        int daysToSubtract = ((int)matchDate.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        DateTime mondayEpoch = matchDate.Date.AddDays(-daysToSubtract);
+
+        // 計算該週設定的開放起訖絕對時間點
+        int startDayOffset = ((int)startDay - (int)DayOfWeek.Monday + 7) % 7;
+        DateTime startAbsolute = mondayEpoch.AddDays(startDayOffset).AddHours(startH).AddMinutes(startM);
+
+        int endDayOffset = ((int)endDay - (int)DayOfWeek.Monday + 7) % 7;
+        DateTime endAbsolute = mondayEpoch.AddDays(endDayOffset).AddHours(endH).AddMinutes(endM);
+
+        // 跨週間循環修正：如果結束時間的絕對點比開始時間還早，代表跨越了星期日，結束點應向後修正一週
+        if (endAbsolute < startAbsolute)
+        {
+            endAbsolute = endAbsolute.AddDays(7);
+        }
+
+        // 取得當前台北時間進行精確比對
+        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var nowTaipei = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
+
+        return nowTaipei >= startAbsolute && nowTaipei <= endAbsolute;
+    }
 
     public DateTime GetCalibratedMatchDate(DateTime now) {
         // 取得本週五的日期基準
