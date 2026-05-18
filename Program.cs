@@ -1318,35 +1318,44 @@ public class VolleyData
         sb.AppendLine("\n女 =>");
         for (int i = 0; i < MaxFemale; i++) sb.AppendLine($"{i + 1 + MaxMale} : {board[MaxMale + i]}");
 
-        // 3. 渲染候補區域（嚴格依據當前開關分流顯示，杜絕標籤錯亂）
+        // 3. 渲染候補區域 (💡 核心優化：由橫式逗號改為直式換行排列)
         if (IsGenderBalanceEnabled) {
             if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
                 if (MaleWaitingList.Any()) {
-                    sb.AppendLine($"男候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
+                    sb.AppendLine("男候補：");
+                    sb.AppendLine(string.Join("\n", MaleWaitingList.Select((p, i) => {
                         string name = GetCleanName(p);
+                        if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
                         string tag = MaleQuarterly.Contains(name) ? "" : "(臨)";
                         return $"{i + 1}.{name}{tag}";
-                    }))}");
+                    })));
                 }
                 if (FemaleWaitingList.Any()) {
-                    sb.AppendLine($"女候補：{string.Join("，", FemaleWaitingList.Select((p, i) => {
+                    sb.AppendLine("女候補：");
+                    sb.AppendLine(string.Join("\n", FemaleWaitingList.Select((p, i) => {
                         string name = GetCleanName(p);
+                        if (name.EndsWith("(女)")) name = name.Substring(0, name.Length - 3);
                         string tag = FemaleQuarterly.Contains(name) ? "" : "(臨)";
                         return $"{i + 1}.{name}{tag}";
-                    }))}");
+                    })));
                 }
             }
         } else {
-            // 關閉男女平衡時，MaleWaitingList 為綜合候補佇列
             if (MaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
-                sb.AppendLine($"候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
-                    string name = GetCleanName(p);
-                    string gender = GetGender(p);
+                sb.AppendLine("候補：");
+                sb.AppendLine(string.Join("\n", MaleWaitingList.Select((p, i) => {
+                    string rawItem = p;
+                    string name = GetCleanName(rawItem);
+                    string gender = GetGender(rawItem, "男");
+                    
+                    if (name.EndsWith("(男)")) { name = name.Substring(0, name.Length - 3); gender = "男"; }
+                    else if (name.EndsWith("(女)")) { name = name.Substring(0, name.Length - 3); gender = "女"; }
+                    
                     string tag = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) ? "" : "(臨)";
                     return $"{i + 1}.{name}{tag}({gender})";
-                }))}");
+                })));
             }
         }
         return sb.ToString();
