@@ -1374,19 +1374,43 @@ public class VolleyData
     public void Rebalance() {
         var allPlayers = new List<(string Name, string Gender, long Timestamp)>();
         
-        void ExtractToList(List<string> srcList) {
+        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
+        long fallbackTs = long.Parse(now.ToString("yyyyMMddHHmmss"));
+
+        // 💡 核心優化：增加對舊名單純文字格式的反查與防呆，避免名單被清空
+        void ExtractToList(List<string> srcList, string defaultGender) {
             foreach (var item in srcList) {
+                if (string.IsNullOrEmpty(item)) continue;
+                
                 var parts = item.Split('|');
                 if (parts.Length >= 3 && long.TryParse(parts[2], out long ts)) {
                     allPlayers.Add((parts[0], parts[1], ts));
+                } else {
+                    // 防呆：如果是沒有 | 的舊資料，或者是之前帶有 (男) (女) 的舊綜合候補字串
+                    string cleanName = parts[0];
+                    string resolvedGender = defaultGender;
+                    
+                    if (cleanName.EndsWith("(男)")) { cleanName = cleanName.Substring(0, cleanName.Length - 3); resolvedGender = "男"; }
+                    else if (cleanName.EndsWith("(女)")) { cleanName = cleanName.Substring(0, cleanName.Length - 3); resolvedGender = "女"; }
+                    
+                    allPlayers.Add((cleanName, resolvedGender, fallbackTs));
                 }
             }
         }
 
-        ExtractToList(MaleParticipants);
-        ExtractToList(FemaleParticipants);
-        ExtractToList(MaleWaitingList);
-        ExtractToList(FemaleWaitingList);
+        // 依據原始名單所在的類型，傳入對應的預設性別進行舊資料反查
+        ExtractToList(MaleParticipants, "男");
+        ExtractToList(FemaleParticipants, "女");
+        
+        // 候補名單的提取與解析
+        if (IsGenderBalanceEnabled) {
+            ExtractToList(MaleWaitingList, "男");
+            ExtractToList(FemaleWaitingList, "女");
+        } else {
+            // 關閉平衡時，MaleWaitingList 內可能有帶有性別標籤的舊資料，ExtractToList 內的 EndingWith 會自動妥善處理
+            ExtractToList(MaleWaitingList, "男");
+        }
 
         MaleParticipants.Clear(); FemaleParticipants.Clear();
         MaleWaitingList.Clear(); FemaleWaitingList.Clear();
@@ -1403,34 +1427,32 @@ public class VolleyData
             // 1. 先滿足各自的基本 9 位配額
             while (mIdx < malePool.Count && MaleParticipants.Count < 9) {
                 var p = malePool[mIdx++];
-                MaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp:D14}");
+                MaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp}");
             }
             while (fIdx < femalePool.Count && FemaleParticipants.Count < 9) {
                 var p = femalePool[fIdx++];
-                FemaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp:D14}");
+                FemaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp}");
             }
 
             // 2. 處理外卡彈性借格 (男性滿 9 但女性有空缺，或者女性滿 9 但男性有空缺)
-            // 此時剩餘的未分配者，必須純粹依據時間戳先後，誰早誰就先去填補對方性別的空缺格子
             var remainingPool = malePool.Skip(mIdx).Select(x => new { x.Name, x.Gender, x.Timestamp })
                 .Concat(femalePool.Skip(fIdx).Select(x => new { x.Name, x.Gender, x.Timestamp }))
                 .OrderBy(x => x.Timestamp).ToList();
 
             foreach (var p in remainingPool) {
-                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp:D14}";
+                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
                 if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
                     if (p.Gender == "男") MaleParticipants.Add(saveStr);
                     else FemaleParticipants.Add(saveStr);
                 } else {
-                    // 如果總數 18 也滿了，各自歸隊到所屬性別的獨立候補
                     if (p.Gender == "男") MaleWaitingList.Add(saveStr);
                     else FemaleWaitingList.Add(saveStr);
                 }
             }
         } else {
-            // 先報先贏核心演算法：總正選上限 18，滿額丟入綜合候補 (MaleWaitingList)
+            // 先報先贏核心演算法：總正選上限 18，滿額丟入綜合候補
             foreach (var p in sortedPool) {
-                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp:D14}";
+                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
                 if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
                     if (p.Gender == "男") MaleParticipants.Add(saveStr);
                     else FemaleParticipants.Add(saveStr);
