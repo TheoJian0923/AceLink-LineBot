@@ -1333,7 +1333,7 @@ public class VolleyData
             if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
                 if (MaleWaitingList.Any()) {
-                    sb.AppendLine("男候補：");
+                    sb.AppendLine("男：");
                     sb.AppendLine(string.Join("\n", MaleWaitingList.Select((p, i) => {
                         string name = GetCleanName(p);
                         if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
@@ -1349,7 +1349,7 @@ public class VolleyData
                     })));
                 }
                 if (FemaleWaitingList.Any()) {
-                    sb.AppendLine("女候補：");
+                    sb.AppendLine("\n女：");
                     sb.AppendLine(string.Join("\n", FemaleWaitingList.Select((p, i) => {
                         string name = GetCleanName(p);
                         if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
@@ -1367,7 +1367,6 @@ public class VolleyData
         } else {
             if (MaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
-                sb.AppendLine("候補：");
                 sb.AppendLine(string.Join("\n", MaleWaitingList.Select((p, i) => {
                     string rawItem = p;
                     string name = GetCleanName(rawItem);
