@@ -551,7 +551,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 {
                     data.IsGenderBalanceEnabled = true;
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已開啟男女平衡機制（維持男 9 人、女 9 人正選限制）。");
+                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已開啟男女平衡機制（9男9女優先）。");
                     continue;
                 }
 
@@ -559,7 +559,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 {
                     data.IsGenderBalanceEnabled = false;
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已關閉男女平衡機制（切換為先報先贏模式，單一綜合候補）。");
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已關閉男女平衡機制（切換為先報先贏模式）。");
                     continue;
                 }
             }
@@ -570,7 +570,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "重置", "確認重置", "系統初始化", "管理員指令", "設定季打費用", "設定冷氣費用", 
                 "設定季打時間", "設定重置時間", "設定報名期限", "設定取消期限", "移除報名期限", 
                 "移除取消期限", "增加季打", "更新季打成員", "移除季打", "修改季打成員名稱", 
-                "查詢季打", "增加報名", "取消報名" 
+                "查詢季打", "增加報名", "取消報名","開啟男女平衡","關閉男女平衡" 
             };
             bool isAdminCmd = adminCommands.Contains(cmd) || 
                               Regex.IsMatch(userMessage, @"^(\d{8})\s*(開冷氣|關冷氣|無開場|有開場)$") ||
@@ -1321,7 +1321,7 @@ public class VolleyData
         } else {
             if (MaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
-                sb.AppendLine($"綜合候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
+                sb.AppendLine($"候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
                     // 將內部標記轉換成外部美化格式，例如 阿俊(男) -> 1.阿俊(臨)(男)
                     string formatted = p.Replace("(男)", "(臨)(男)").Replace("(女)", "(臨)(女)");
                     return $"{i + 1}.{formatted}";
@@ -1342,12 +1342,12 @@ public class VolleyData
                     else FemaleWaitingList.Add(name);
                 }
             } else {
-                // 先報先贏：未滿 18 人直接塞入對應名單，滿了統一進 MaleWaitingList 當綜合候補
+                // 先報先贏：未滿 18 人直接塞入對應名單，滿了統一進 MaleWaitingList 當候補
                 if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
                     if (gender == "男") MaleParticipants.Add(name);
                     else FemaleParticipants.Add(name);
                 } else {
-                    // 為了在字串顯示能識別性別，綜合候補名字後方加上隱含標記
+                    // 為了在字串顯示能識別性別，候補名字後方加上隱含標記
                     MaleWaitingList.Add($"{name}({gender})");
                 }
             }
