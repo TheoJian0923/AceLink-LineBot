@@ -1328,7 +1328,7 @@ public class VolleyData
         sb.AppendLine("\n女 =>");
         for (int i = 0; i < MaxFemale; i++) sb.AppendLine($"{i + 1 + MaxMale} : {board[MaxMale + i]}");
 
-        // 3. 渲染候補區域 (💡 完美同步直式排版，且參數呼叫完全對齊)
+        // 3. 渲染候補區域 (💡 核心優化：引入 qUsed 黑名單機制，季打重複代報一律強制還原為臨打標籤)
         if (IsGenderBalanceEnabled) {
             if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
@@ -1337,7 +1337,14 @@ public class VolleyData
                     sb.AppendLine(string.Join("\n", MaleWaitingList.Select((p, i) => {
                         string name = GetCleanName(p);
                         if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
-                        string tag = MaleQuarterly.Contains(name) ? "" : "(臨)";
+                        if (name.EndsWith("(女)")) name = name.Substring(0, name.Length - 3);
+                        if (name.EndsWith("(臨)")) name = name.Substring(0, name.Length - 3);
+                        
+                        // 檢查該季打是否已在正選中使用過名額，若已使用，則後面代報名皆加上 (臨)
+                        bool isQ = MaleQuarterly.Contains(name) && !qUsed.Contains(name);
+                        if (isQ) qUsed.Add(name); 
+                        
+                        string tag = isQ ? "" : "(臨)";
                         return $"{i + 1}.{name}{tag}";
                     })));
                 }
@@ -1345,8 +1352,14 @@ public class VolleyData
                     sb.AppendLine("女候補：");
                     sb.AppendLine(string.Join("\n", FemaleWaitingList.Select((p, i) => {
                         string name = GetCleanName(p);
+                        if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
                         if (name.EndsWith("(女)")) name = name.Substring(0, name.Length - 3);
-                        string tag = FemaleQuarterly.Contains(name) ? "" : "(臨)";
+                        if (name.EndsWith("(臨)")) name = name.Substring(0, name.Length - 3);
+                        
+                        bool isQ = FemaleQuarterly.Contains(name) && !qUsed.Contains(name);
+                        if (isQ) qUsed.Add(name);
+                        
+                        string tag = isQ ? "" : "(臨)";
                         return $"{i + 1}.{name}{tag}";
                     })));
                 }
@@ -1360,10 +1373,15 @@ public class VolleyData
                     string name = GetCleanName(rawItem);
                     string gender = GetGender(rawItem, "男");
                     
-                    if (name.EndsWith("(男)")) { name = name.Substring(0, name.Length - 3); gender = "男"; }
-                    else if (name.EndsWith("(女)")) { name = name.Substring(0, name.Length - 3); gender = "女"; }
+                    if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
+                    if (name.EndsWith("(女)")) name = name.Substring(0, name.Length - 3);
+                    if (name.EndsWith("(臨)")) name = name.Substring(0, name.Length - 3);
                     
-                    string tag = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) ? "" : "(臨)";
+                    // 關閉平衡綜合候補：同樣進行 qUsed 季打配額查核
+                    bool isQ = ((gender == "男") ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) && !qUsed.Contains(name);
+                    if (isQ) qUsed.Add(name);
+                    
+                    string tag = isQ ? "" : "(臨)";
                     return $"{i + 1}.{name}{tag}({gender})";
                 })));
             }
