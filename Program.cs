@@ -394,6 +394,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
                     sb.AppendLine($"● 自動重置：{(data.IsResetEnabled ? "開啟" : "關閉")}");
+                    sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? "開啟 (9男9女優先)" : "關閉 (先報先贏)")}");
                     sb.AppendLine($"● 重置時間：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
                     sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
                     sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
@@ -544,7 +545,23 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     manager.Save(groupId, data);
                     await lineClient.ReplyMessageAsync(replyToken, "✅ 已重新開啟自動重置功能。");
                     continue;
-                }                
+                }
+
+                if (cmd == "開啟男女平衡")
+                {
+                    data.IsGenderBalanceEnabled = true;
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已開啟男女平衡機制（維持男 9 人、女 9 人正選限制）。");
+                    continue;
+                }
+
+                if (cmd == "關閉男女平衡")
+                {
+                    data.IsGenderBalanceEnabled = false;
+                    manager.Save(groupId, data);
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已關閉男女平衡機制（切換為先報先贏模式，單一綜合候補）。");
+                    continue;
+                }
             }
             #endregion
 
@@ -601,7 +618,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
                     data.SetupStep = 1;
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/7] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
+                    await lineClient.ReplyMessageAsync(replyToken, "🛠️ 【AceLink 系統初始化】已啟動\n\n[Step 1/8] 設定球季期間\n請輸入起訖日期，格式如下：\n20260101\n20260331\n(或輸入「取消設定」退出)");
                     continue;
                 }
 
@@ -613,7 +630,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (lines.Count >= 2) {
                             data.SeasonStart = lines[0]; data.SeasonEnd = lines[1];
                             data.SetupStep = 2; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 球季期間已設定。\n\n[Step 2/7] 設定比賽與費用\n請輸入格式：\n星期 (英文)\n時間 (HHmm)\n季打費用\n冷氣費用\n\n範例：\nSaturday\n1900\n200\n40");
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 球季期間已設定。\n\n[Step 2/8] 設定比賽與費用\n請輸入格式：\n星期 (英文)\n時間 (HHmm)\n季打費用\n冷氣費用\n\n範例：\nSaturday\n1900\n200\n40");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請輸入球季起迄日期 (共兩行)。"); }
                         continue;
                     }
@@ -626,7 +643,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 data.MatchHour = h; data.MatchMinute = m;
                                 data.QuarterlyFee = int.Parse(lines[2]); data.AcFee = int.Parse(lines[3]);
                                 data.SetupStep = 3; manager.Save(groupId, data);
-                                await lineClient.ReplyMessageAsync(replyToken, "✅ 費用與時間已設定。\n\n[Step 3/7] 設定提前收費金額\n請輸入本季預計收取的總額（例如 3000）");
+                                await lineClient.ReplyMessageAsync(replyToken, "✅ 費用與時間已設定。\n\n[Step 3/8] 設定提前收費金額\n請輸入本季預計收取的總額（例如 3000）");
                             }
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請檢查星期與費用格式。"); }
                         continue;
@@ -635,7 +652,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (int.TryParse(cmd, out int prepaid)) {
                             data.PrepaidFee = prepaid;
                             data.SetupStep = 4; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 提前收費已設定。\n\n[Step 4/7] 設定冷氣模式\n請輸入：保持開啟 或 保持關閉");
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 提前收費已設定。\n\n[Step 4/8] 設定冷氣模式\n請輸入：保持開啟 或 保持關閉");
                         } else {
                             await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入有效的數字金額。");
                         }
@@ -646,11 +663,20 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         if (cmd == "保持開啟" || cmd == "保持關閉") {
                             data.IsAcAlwaysOn = (cmd == "保持開啟");
                             data.SetupStep = 5; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 5/7] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
+                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣模式已設定為：{cmd}。\n\n[Step 5/8] 設定男女平衡機制\n請輸入：保持開啟 或 保持關閉\n(若選擇保持關閉，則系統將採用「先報先贏」且不分性別進行單一候補隊列排序)");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
                         continue;
                     }
                     if (data.SetupStep == 5)
+                    {
+                        if (cmd == "保持開啟" || cmd == "保持關閉") {
+                            data.IsGenderBalanceEnabled = (cmd == "保持開啟");
+                            data.SetupStep = 6; manager.Save(groupId, data);
+                            await lineClient.ReplyMessageAsync(replyToken, $"✅ 男女平衡機制已設定為：{cmd}。\n\n[Step 6/8] 匯入季打名單\n請一次性輸入性別與名單，格式如下：\n男\n小明,小李,小張\n女\n小美,小華");
+                        } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 請輸入「保持開啟」或「保持關閉」。"); }
+                        continue;
+                    }
+                    if (data.SetupStep == 6)
                     {
                         int maleIdx = lines.IndexOf("男");
                         int femaleIdx = lines.IndexOf("女");
@@ -660,12 +686,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             string fNames = lines[femaleIdx + 1];
                             foreach(var n in mNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.MaleQuarterly.Add(n.Trim()); }
                             foreach(var n in fNames.Split(new[] { ',', '，' })) { if(!string.IsNullOrWhiteSpace(n)) data.FemaleQuarterly.Add(n.Trim()); }
-                            data.SetupStep = 6; manager.Save(groupId, data);
-                            await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 6/7] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
+                            data.SetupStep = 7; manager.Save(groupId, data);
+                            await lineClient.ReplyMessageAsync(replyToken, "✅ 季打名單已匯入。\n\n[Step 7/8] 設定重置與取消期限\n請輸入格式：\n重置星期/時間\n取消截止星期/時間\n\n範例：\nSaturday/1200\nThursday/1500");
                         } else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤，請確保包含「男」與「女」標籤及名單。"); }
                         continue;
                     }
-                    if (data.SetupStep == 6)
+                    if (data.SetupStep == 7)
                     {
                         if (lines.Count >= 2) {
                             var p1 = lines[0].Split('/'); var p2 = lines[1].Split('/');
@@ -673,7 +699,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 data.ResetDay = rDay; data.ResetHour = int.Parse(p1[1].Substring(0, 2)); data.ResetMinute = int.Parse(p1[1].Substring(2));
                                 data.CancelDeadlineDay = cDay; data.CancelDeadlineHour = int.Parse(p2[1].Substring(0, 2)); data.CancelDeadlineMinute = int.Parse(p2[1].Substring(2));
                                 
-                                data.SetupStep = 7; manager.Save(groupId, data);
+                                data.SetupStep = 8; manager.Save(groupId, data);
 
                                 // --- 構造摘要訊息 ---
                                 var sb = new StringBuilder("📝 【請確認新賽季設定】\n");
@@ -683,6 +709,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 sb.AppendLine($"💰 費用：季打 {data.QuarterlyFee} / 冷氣 {data.AcFee}");
                                 sb.AppendLine($"💵 預收：{data.PrepaidFee} 元");
                                 sb.AppendLine($"❄️ 冷氣：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}");
+                                sb.AppendLine($"⚖️ 平衡：{(data.IsGenderBalanceEnabled ? "保持開啟 (男9女9)" : "保持關閉 (先報先贏)")}");
                                 sb.AppendLine($"👥 季打人數：男 {data.MaleQuarterly.Count} / 女 {data.FemaleQuarterly.Count}");
                                 sb.AppendLine($"🔄 自動重置：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
                                 sb.AppendLine($"🚫 取消截止：週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}");
@@ -697,7 +724,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         }
                         continue;
                     }
-                    if (data.SetupStep == 7)
+                    if (data.SetupStep == 8)
                     {
                         // 如果使用者在摘要頁面選擇取消
                         if (cmd == "取消設定" || cmd == "取消") 
@@ -770,6 +797,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     ● 設定[報名/取消]期限 ↵ 
       星期 ↵ 時間
     ● 移除[報名/取消]期限
+    ● [開啟/關閉]男女平衡
 
     【 費用與日期控制 】
     ● 設定[季打/冷氣]費用 [金額]
@@ -1201,6 +1229,7 @@ public class VolleyData
     public bool ConfirmReset { get; set; } = false;
     public string LastResetDate { get; set; } = ""; // 記錄最後一次執行的日期格式：20260515
     public bool IsResetEnabled { get; set; } = true; // 預設為開啟自動重置
+    public bool IsGenderBalanceEnabled { get; set; } = true; // 男女平衡機制開關，預設開啟
     public string? OldName { get; set; } = null;
     public string? NewName { get; set; } = null;
 
@@ -1283,54 +1312,109 @@ public class VolleyData
         for (int i = 0; i < MaxMale; i++) sb.AppendLine($"{i + 1} : {board[i]}");
         sb.AppendLine("\n女 =>");
         for (int i = 0; i < MaxFemale; i++) sb.AppendLine($"{i + 1 + MaxMale} : {board[MaxMale + i]}");
-        if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
-            sb.AppendLine("\n--- 候補 ---");
-            if (MaleWaitingList.Any()) sb.AppendLine($"男候補：{string.Join("，", MaleWaitingList.Select((p, i) => $"{i + 1}.{p}"))}");
-            if (FemaleWaitingList.Any()) sb.AppendLine($"女候補：{string.Join("，", FemaleWaitingList.Select((p, i) => $"{i + 1}.{p}"))}");
+        if (IsGenderBalanceEnabled) {
+            if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
+                sb.AppendLine("\n--- 候補 ---");
+                if (MaleWaitingList.Any()) sb.AppendLine($"男候補：{string.Join("，", MaleWaitingList.Select((p, i) => $"{i + 1}.{p}"))}");
+                if (FemaleWaitingList.Any()) sb.AppendLine($"女候補：{string.Join("，", FemaleWaitingList.Select((p, i) => $"{i + 1}.{p}"))}");
+            }
+        } else {
+            if (MaleWaitingList.Any()) {
+                sb.AppendLine("\n--- 候補 ---");
+                sb.AppendLine($"綜合候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
+                    // 將內部標記轉換成外部美化格式，例如 阿俊(男) -> 1.阿俊(臨)(男)
+                    string formatted = p.Replace("(男)", "(臨)(男)").Replace("(女)", "(臨)(女)");
+                    return $"{i + 1}.{formatted}";
+                }))}");
+            }
         }
         return sb.ToString();
     }
 
     public void AddPlayer(string name, int count, string gender) {
         for (int i = 0; i < count; i++) {
-            if (gender == "男") {
-                if (MaleParticipants.Count + FemaleParticipants.Count < 18) MaleParticipants.Add(name);
-                else MaleWaitingList.Add(name);
+            if (IsGenderBalanceEnabled) {
+                if (gender == "男") {
+                    if (MaleParticipants.Count + FemaleParticipants.Count < 18) MaleParticipants.Add(name);
+                    else MaleWaitingList.Add(name);
+                } else {
+                    if (MaleParticipants.Count + FemaleParticipants.Count < 18) FemaleParticipants.Add(name);
+                    else FemaleWaitingList.Add(name);
+                }
             } else {
-                if (MaleParticipants.Count + FemaleParticipants.Count < 18) FemaleParticipants.Add(name);
-                else FemaleWaitingList.Add(name);
+                // 先報先贏：未滿 18 人直接塞入對應名單，滿了統一進 MaleWaitingList 當綜合候補
+                if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
+                    if (gender == "男") MaleParticipants.Add(name);
+                    else FemaleParticipants.Add(name);
+                } else {
+                    // 為了在字串顯示能識別性別，綜合候補名字後方加上隱含標記
+                    MaleWaitingList.Add($"{name}({gender})");
+                }
             }
         }
         Rebalance();
     }
 
     private void Rebalance() {
-        while (FemaleWaitingList.Any() && MaleParticipants.Count > 9) {
-            string kickedName = MaleParticipants.Last();
-            MaleParticipants.RemoveAt(MaleParticipants.Count - 1);
-            MaleWaitingList.Insert(0, kickedName);
-        }
-        while (MaleWaitingList.Any() && FemaleParticipants.Count > 9) {
-            string kickedName = FemaleParticipants.Last();
-            FemaleParticipants.RemoveAt(FemaleParticipants.Count - 1);
-            FemaleWaitingList.Insert(0, kickedName);
-        }
-        while (MaleParticipants.Count + FemaleParticipants.Count < 18 && (MaleWaitingList.Any() || FemaleWaitingList.Any())) {
-            if (MaleParticipants.Count < 9 && MaleWaitingList.Any()) { MaleParticipants.Add(MaleWaitingList[0]); MaleWaitingList.RemoveAt(0); }
-            else if (FemaleParticipants.Count < 9 && FemaleWaitingList.Any()) { FemaleParticipants.Add(FemaleWaitingList[0]); FemaleWaitingList.RemoveAt(0); }
-            else if (MaleWaitingList.Any()) { MaleParticipants.Add(MaleWaitingList[0]); MaleWaitingList.RemoveAt(0); }
-            else if (FemaleWaitingList.Any()) { FemaleParticipants.Add(FemaleWaitingList[0]); FemaleWaitingList.RemoveAt(0); }
-            else break;
+        if (IsGenderBalanceEnabled) {
+            while (FemaleWaitingList.Any() && MaleParticipants.Count > 9) {
+                string kickedName = MaleParticipants.Last();
+                MaleParticipants.RemoveAt(MaleParticipants.Count - 1);
+                MaleWaitingList.Insert(0, kickedName);
+            }
+            while (MaleWaitingList.Any() && FemaleParticipants.Count > 9) {
+                string kickedName = FemaleParticipants.Last();
+                FemaleParticipants.RemoveAt(FemaleParticipants.Count - 1);
+                FemaleWaitingList.Insert(0, kickedName);
+            }
+            while (MaleParticipants.Count + FemaleParticipants.Count < 18 && (MaleWaitingList.Any() || FemaleWaitingList.Any())) {
+                if (MaleParticipants.Count < 9 && MaleWaitingList.Any()) { MaleParticipants.Add(MaleWaitingList[0]); MaleWaitingList.RemoveAt(0); }
+                else if (FemaleParticipants.Count < 9 && FemaleWaitingList.Any()) { FemaleParticipants.Add(FemaleWaitingList[0]); FemaleWaitingList.RemoveAt(0); }
+                else if (MaleWaitingList.Any()) { MaleParticipants.Add(MaleWaitingList[0]); MaleWaitingList.RemoveAt(0); }
+                else if (FemaleWaitingList.Any()) { FemaleParticipants.Add(FemaleWaitingList[0]); FemaleWaitingList.RemoveAt(0); }
+                else break;
+            }
+        } else {
+            // 先報先贏：只要正選不滿 18 且綜合候補(MaleWaitingList)有球員，依序補上
+            while (MaleParticipants.Count + FemaleParticipants.Count < 18 && MaleWaitingList.Any()) {
+                string rawName = MaleWaitingList[0];
+                MaleWaitingList.RemoveAt(0);
+                if (rawName.EndsWith("(男)")) {
+                    MaleParticipants.Add(rawName.Substring(0, rawName.Length - 3));
+                } else if (rawName.EndsWith("(女)")) {
+                    FemaleParticipants.Add(rawName.Substring(0, rawName.Length - 3));
+                } else {
+                    // 防呆：若無標記預設進男名單
+                    MaleParticipants.Add(rawName);
+                }
+            }
         }
     }
 
     public string RemovePlayer(string n, int c, bool o, string g) {
-        List<string> list = (g == "男") ? MaleParticipants : FemaleParticipants;
-        List<string> wait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
         int rem = 0; bool warn = false;
-        for (int i = 0; i < c; i++) {
-            if (wait.Contains(n)) { wait.RemoveAt(wait.LastIndexOf(n)); rem++; }
-            else if (list.Contains(n)) { list.RemoveAt(list.LastIndexOf(n)); rem++; if (o) warn = true; }
+        if (IsGenderBalanceEnabled) {
+            List<string> list = (g == "男") ? MaleParticipants : FemaleParticipants;
+            List<string> wait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
+            for (int i = 0; i < c; i++) {
+                if (wait.Contains(n)) { wait.RemoveAt(wait.LastIndexOf(n)); rem++; }
+                else if (list.Contains(n)) { list.RemoveAt(list.LastIndexOf(n)); rem++; if (o) warn = true; }
+            }
+        } else {
+            // 先報先贏：正選直接找，候補找帶有性別標記的項目
+            string targetWaitName = $"{n}({g})";
+            for (int i = 0; i < c; i++) {
+                if (MaleWaitingList.Contains(targetWaitName)) {
+                    MaleWaitingList.RemoveAt(MaleWaitingList.LastIndexOf(targetWaitName));
+                    rem++;
+                } else if (g == "男" && MaleParticipants.Contains(n)) {
+                    MaleParticipants.RemoveAt(MaleParticipants.LastIndexOf(n));
+                    rem++; if (o) warn = true;
+                } else if (g == "女" && FemaleParticipants.Contains(n)) {
+                    FemaleParticipants.RemoveAt(FemaleParticipants.LastIndexOf(n));
+                    rem++; if (o) warn = true;
+                }
+            }
         }
         Rebalance();
         return warn ? $"{n}您好，因過取消期限若無遞補仍需繳費" : $"❌ {n} 已取消 {g} {rem}位";
