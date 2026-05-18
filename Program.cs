@@ -1270,24 +1270,30 @@ public class VolleyData
         sb.AppendLine($"📅 {mDate:yyyy/MM/dd} ({GetDayString(mDate.DayOfWeek)})");
         sb.AppendLine(title + "\n------------------");
         
-        // 💡 核心優化：既然 Rebalance 已經完美的把正選配額做好，看板直接乾淨渲染對應格子，徹底廢除交叉覆蓋舊邏輯
         string[] board = new string[MaxMale + MaxFemale];
         HashSet<string> qUsed = new(); 
 
-        string GetCleanName(string raw) => raw.Split('|')[0];
-        string GetGender(string raw) => raw.Split('|')[1];
+        // 💡 確保 GetCleanName 與 GetGender 完全定義正確，相容 2 個參數的呼叫
+        string GetCleanName(string raw) => string.IsNullOrEmpty(raw) ? "" : raw.Split('|')[0];
+        string GetGender(string raw, string defaultGender) {
+            if (string.IsNullOrEmpty(raw)) return defaultGender;
+            var parts = raw.Split('|');
+            return parts.Length > 1 ? parts[1] : defaultGender;
+        }
 
         // 1. 渲染男格子區域 (1 ~ 9 號)
         for (int i = 0; i < MaxMale; i++) {
             if (i < MaleParticipants.Count) {
-                string name = GetCleanName(MaleParticipants[i]);
-                string gender = GetGender(MaleParticipants[i]);
+                string rawItem = MaleParticipants[i];
+                string name = GetCleanName(rawItem);
+                string gender = GetGender(rawItem, "男"); 
                 
-                // 判斷是否為常駐季打（且不可重複扣減）
+                if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
+                if (name.EndsWith("(女)")) name = name.Substring(0, name.Length - 3);
+                
                 bool isQ = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) && !qUsed.Contains(name);
                 if (isQ) qUsed.Add(name);
                 
-                // 季打不加任何標記，臨打加上 (臨)；若跨性別借格子，則補上性別標籤
                 string tag = isQ ? "" : "(臨)";
                 string genderTag = (gender == "女") ? "(女)" : ""; 
                 board[i] = name + tag + genderTag;
@@ -1299,8 +1305,12 @@ public class VolleyData
         // 2. 渲染女格子區域 (10 ~ 18 號)
         for (int i = 0; i < MaxFemale; i++) {
             if (i < FemaleParticipants.Count) {
-                string name = GetCleanName(FemaleParticipants[i]);
-                string gender = GetGender(FemaleParticipants[i]);
+                string rawItem = FemaleParticipants[i];
+                string name = GetCleanName(rawItem);
+                string gender = GetGender(rawItem, "女"); 
+                
+                if (name.EndsWith("(男)")) name = name.Substring(0, name.Length - 3);
+                if (name.EndsWith("(女)")) name = name.Substring(0, name.Length - 3);
                 
                 bool isQ = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) && !qUsed.Contains(name);
                 if (isQ) qUsed.Add(name);
@@ -1318,7 +1328,7 @@ public class VolleyData
         sb.AppendLine("\n女 =>");
         for (int i = 0; i < MaxFemale; i++) sb.AppendLine($"{i + 1 + MaxMale} : {board[MaxMale + i]}");
 
-        // 3. 渲染候補區域 (💡 核心優化：由橫式逗號改為直式換行排列)
+        // 3. 渲染候補區域 (💡 完美同步直式排版，且參數呼叫完全對齊)
         if (IsGenderBalanceEnabled) {
             if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
