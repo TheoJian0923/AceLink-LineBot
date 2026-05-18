@@ -390,12 +390,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 授權狀態：{(data.IsAuthorized ? "已授權" : "未授權")}");
                     sb.AppendLine($"● 管理員人數：{data.Admins.Count}");
                     sb.AppendLine($"● 球季期間：{data.SeasonStart} ~ {data.SeasonEnd}");
-                    sb.AppendLine($"● 比賽時間：週({data.MatchDay}) {data.MatchHour:D2}:{data.MatchMinute:D2}");
+                    sb.AppendLine($"● 比賽時間：週({data.GetDayString(data.MatchDay)}) {data.MatchHour:D2}:{data.MatchMinute:D2}");
                     sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
                     sb.AppendLine($"● 自動重置：{(data.IsResetEnabled ? "開啟" : "關閉")}");
                     sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? "開啟 (9男9女優先)" : "關閉 (先報先贏)")}");
-                    sb.AppendLine($"● 重置時間：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
+                    sb.AppendLine($"● 重置時間：週({data.GetDayString(data.ResetDay)}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
                     sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
                     sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
                     sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
@@ -1167,8 +1167,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             if (action == "+")
                             {
                                 // 💡 核心時段攔截機制：非管理員且非開發者時，進行可報名區間檢核
-                                //if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
-                                if (!data.IsWithinRegistrationPeriod(out string formattedRange))
+                                //if (!data.IsWithinRegistrationPeriod(out string formattedRange))//測試用
+                                if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
                                 {
                                     await lineClient.ReplyMessageAsync(replyToken, $"您好，現在非報名時間請在{formattedRange}時間段做報名動作，感謝您");
                                 }
