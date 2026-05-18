@@ -783,6 +783,13 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     ● 移除[報名/取消]期限
     ● [開啟/關閉]男女平衡
 
+    【 💡 開放報名時段控制 】
+    ● 設定可報名時間 ↵ 
+      開始星期 (英文) ↵ 開始時間 (HHmm) ↵ 
+      結束星期 (英文) ↵ 結束時間 (HHmm)
+      (範例：Wednesday ↵ 1200 ↵ Tuesday ↵ 1930)
+    ● 移除可報名時間 (恢復自由報名)
+
     【 費用與日期控制 】
     ● 設定[季打/冷氣]費用 [金額]
     ● [8位日期] [無開場/有開場]
