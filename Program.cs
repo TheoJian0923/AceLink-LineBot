@@ -1452,13 +1452,22 @@ public class VolleyData
                 }
             }
         } else {
-            // 先報先贏核心演算法：總正選上限 18，滿額丟入綜合候補
+            // 💡 核心修正：先報先贏模式下，必須嚴格遵守實體格子限制（男上限 9、女上限 9），滿 9 人時自動橫向外卡溢出到對方的空缺格子，直到總數滿 18 為止！
             foreach (var p in sortedPool) {
                 string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
+                
                 if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
-                    if (p.Gender == "男") MaleParticipants.Add(saveStr);
-                    else FemaleParticipants.Add(saveStr);
+                    // 如果是男生，優先進男正選，若男正選滿 9 人，則彈性借用女正選的空缺格子
+                    if (p.Gender == "男") {
+                        if (MaleParticipants.Count < 9) MaleParticipants.Add(saveStr);
+                        else FemaleParticipants.Add(saveStr);
+                    } else {
+                        // 如果是女生，優先進女正選，若女正選滿 9 人，則彈性借用男正選的空缺格子
+                        if (FemaleParticipants.Count < 9) FemaleParticipants.Add(saveStr);
+                        else MaleParticipants.Add(saveStr);
+                    }
                 } else {
+                    // 總人數滿 18 人後，不分男女，統一依據時間序進入綜合候補佇列
                     MaleWaitingList.Add(saveStr); 
                 }
             }
