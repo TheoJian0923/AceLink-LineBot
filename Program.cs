@@ -1024,16 +1024,17 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd == "開啟男女平衡")
                 {
                     data.IsGenderBalanceEnabled = true;
+                    data.Rebalance(); 
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已開啟男女平衡機制（9男9女優先）。");
+                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("✅ 已切換男女平衡狀態\n🏐 目前報名狀態"));
                     continue;
                 }
-
                 if (cmd == "關閉男女平衡")
                 {
                     data.IsGenderBalanceEnabled = false;
+                    data.Rebalance(); 
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已關閉男女平衡機制（切換為先報先贏模式）。");
+                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("✅ 已切換男女平衡狀態\n🏐 目前報名狀態"));
                     continue;
                 }
             }
@@ -1271,26 +1272,35 @@ public class VolleyData
         string[] board = new string[MaxMale + MaxFemale];
         HashSet<string> maleQUsed = new(); 
         HashSet<string> femaleQUsed = new();
+
+        // 解構取得純姓名與性別
+        string GetCleanName(string raw) => raw.Split('|')[0];
+        string GetGender(string raw) => raw.Split('|')[1];
+
         for (int i = 0; i < Math.Min(MaleParticipants.Count, MaxMale); i++) {
-            string name = MaleParticipants[i];
+            string name = GetCleanName(MaleParticipants[i]);
             if (MaleQuarterly.Contains(name) && !maleQUsed.Contains(name)) { board[i] = name; maleQUsed.Add(name); }
             else board[i] = name + "(臨)";
         }
         for (int i = 0; i < Math.Min(FemaleParticipants.Count, MaxFemale); i++) {
-            string name = FemaleParticipants[i];
+            string name = GetCleanName(FemaleParticipants[i]);
             if (FemaleQuarterly.Contains(name) && !femaleQUsed.Contains(name)) { board[MaxMale + i] = name; femaleQUsed.Add(name); }
             else board[MaxMale + i] = name + "(臨)";
         }
+
+        // 當有關閉男女平衡，或者開啟平衡但出現跨性別借用格子(溢出)的狀況時，進行看板的特別動態標記填入
         if (MaleParticipants.Count > MaxMale) {
             var extras = MaleParticipants.Skip(MaxMale).ToList();
             int slot = MaxMale;
             foreach (var p in extras) {
                 while (slot < (MaxMale + MaxFemale) && !string.IsNullOrEmpty(board[slot])) slot++;
                 if (slot < (MaxMale + MaxFemale)) {
-                    bool isQ = MaleQuarterly.Contains(p) && !maleQUsed.Contains(p);
-                    string identityTag = isQ ? "(男)" : "(臨)(男)";
-                    if (isQ) maleQUsed.Add(p);
-                    board[slot] = p + identityTag;
+                    string name = GetCleanName(p);
+                    string gender = GetGender(p);
+                    bool isQ = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) && !maleQUsed.Contains(name);
+                    string identityTag = isQ ? $"({gender})" : $"(臨)({gender})";
+                    if (isQ) maleQUsed.Add(name);
+                    board[slot] = name + identityTag;
                 }
             }
         }
@@ -1300,30 +1310,47 @@ public class VolleyData
             foreach (var p in extras) {
                 while (slot < MaxMale && !string.IsNullOrEmpty(board[slot])) slot++;
                 if (slot < MaxMale) {
-                    bool isQ = FemaleQuarterly.Contains(p) && !femaleQUsed.Contains(p);
-                    string identityTag = isQ ? "(女)" : "(臨)(女)";
-                    if (isQ) femaleQUsed.Add(p);
-                    board[slot] = p + identityTag;
+                    string name = GetCleanName(p);
+                    string gender = GetGender(p);
+                    bool isQ = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) && !femaleQUsed.Contains(name);
+                    string identityTag = isQ ? $"({gender})" : $"(臨)({gender})";
+                    if (isQ) femaleQUsed.Add(name);
+                    board[slot] = name + identityTag;
                 }
             }
         }
+
         sb.AppendLine("男 =>");
         for (int i = 0; i < MaxMale; i++) sb.AppendLine($"{i + 1} : {board[i]}");
         sb.AppendLine("\n女 =>");
         for (int i = 0; i < MaxFemale; i++) sb.AppendLine($"{i + 1 + MaxMale} : {board[MaxMale + i]}");
+
         if (IsGenderBalanceEnabled) {
             if (MaleWaitingList.Any() || FemaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
-                if (MaleWaitingList.Any()) sb.AppendLine($"男候補：{string.Join("，", MaleWaitingList.Select((p, i) => $"{i + 1}.{p}"))}");
-                if (FemaleWaitingList.Any()) sb.AppendLine($"女候補：{string.Join("，", FemaleWaitingList.Select((p, i) => $"{i + 1}.{p}"))}");
+                if (MaleWaitingList.Any()) {
+                    sb.AppendLine($"男候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
+                        string name = GetCleanName(p);
+                        string tag = MaleQuarterly.Contains(name) ? "" : "(臨)";
+                        return $"{i + 1}.{name}{tag}";
+                    }))}");
+                }
+                if (FemaleWaitingList.Any()) {
+                    sb.AppendLine($"女候補：{string.Join("，", FemaleWaitingList.Select((p, i) => {
+                        string name = GetCleanName(p);
+                        string tag = FemaleQuarterly.Contains(name) ? "" : "(臨)";
+                        return $"{i + 1}.{name}{tag}";
+                    }))}");
+                }
             }
         } else {
             if (MaleWaitingList.Any()) {
                 sb.AppendLine("\n--- 候補 ---");
                 sb.AppendLine($"候補：{string.Join("，", MaleWaitingList.Select((p, i) => {
-                    // 將內部標記轉換成外部美化格式，例如 阿俊(男) -> 1.阿俊(臨)(男)
-                    string formatted = p.Replace("(男)", "(臨)(男)").Replace("(女)", "(臨)(女)");
-                    return $"{i + 1}.{formatted}";
+                    string name = GetCleanName(p);
+                    string gender = GetGender(p);
+                    string tag = (gender == "男" ? MaleQuarterly.Contains(name) : FemaleQuarterly.Contains(name)) ? "" : "(臨)";
+                    return $"{i + 1}.{name}{tag}({gender})";
                 }))}");
             }
         }
@@ -1331,90 +1358,123 @@ public class VolleyData
     }
 
     public void AddPlayer(string name, int count, string gender) {
+        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
+        
         for (int i = 0; i < count; i++) {
-            if (IsGenderBalanceEnabled) {
-                if (gender == "男") {
-                    if (MaleParticipants.Count + FemaleParticipants.Count < 18) MaleParticipants.Add(name);
-                    else MaleWaitingList.Add(name);
-                } else {
-                    if (MaleParticipants.Count + FemaleParticipants.Count < 18) FemaleParticipants.Add(name);
-                    else FemaleWaitingList.Add(name);
-                }
-            } else {
-                // 先報先贏：未滿 18 人直接塞入對應名單，滿了統一進 MaleWaitingList 當候補
-                if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
-                    if (gender == "男") MaleParticipants.Add(name);
-                    else FemaleParticipants.Add(name);
-                } else {
-                    // 為了在字串顯示能識別性別，候補名字後方加上隱含標記
-                    MaleWaitingList.Add($"{name}({gender})");
-                }
-            }
+            string timestamp = now.AddSeconds(i).ToString("yyyyMMddHHmmss");
+            string item = $"{name}|{gender}|{timestamp}";
+            
+            if (gender == "男") MaleParticipants.Add(item);
+            else FemaleParticipants.Add(item);
         }
         Rebalance();
     }
 
-    private void Rebalance() {
+    public void Rebalance() {
+        var allPlayers = new List<(string Name, string Gender, long Timestamp)>();
+        
+        void ExtractToList(List<string> srcList) {
+            foreach (var item in srcList) {
+                var parts = item.Split('|');
+                if (parts.Length >= 3 && long.TryParse(parts[2], out long ts)) {
+                    allPlayers.Add((parts[0], parts[1], ts));
+                }
+            }
+        }
+
+        ExtractToList(MaleParticipants);
+        ExtractToList(FemaleParticipants);
+        ExtractToList(MaleWaitingList);
+        ExtractToList(FemaleWaitingList);
+
+        MaleParticipants.Clear(); FemaleParticipants.Clear();
+        MaleWaitingList.Clear(); FemaleWaitingList.Clear();
+
+        var sortedPool = allPlayers.OrderBy(x => x.Timestamp).ToList();
+
         if (IsGenderBalanceEnabled) {
-            while (FemaleWaitingList.Any() && MaleParticipants.Count > 9) {
-                string kickedName = MaleParticipants.Last();
-                MaleParticipants.RemoveAt(MaleParticipants.Count - 1);
-                MaleWaitingList.Insert(0, kickedName);
+            // 男女平衡核心演算法 (含外卡遞補機制)
+            var malePool = sortedPool.Where(x => x.Gender == "男").ToList();
+            var femalePool = sortedPool.Where(x => x.Gender == "女").ToList();
+
+            int mIdx = 0; int fIdx = 0;
+
+            // 1. 先滿足各自的基本 9 位配額
+            while (mIdx < malePool.Count && MaleParticipants.Count < 9) {
+                var p = malePool[mIdx++];
+                MaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp:D14}");
             }
-            while (MaleWaitingList.Any() && FemaleParticipants.Count > 9) {
-                string kickedName = FemaleParticipants.Last();
-                FemaleParticipants.RemoveAt(FemaleParticipants.Count - 1);
-                FemaleWaitingList.Insert(0, kickedName);
+            while (fIdx < femalePool.Count && FemaleParticipants.Count < 9) {
+                var p = femalePool[fIdx++];
+                FemaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp:D14}");
             }
-            while (MaleParticipants.Count + FemaleParticipants.Count < 18 && (MaleWaitingList.Any() || FemaleWaitingList.Any())) {
-                if (MaleParticipants.Count < 9 && MaleWaitingList.Any()) { MaleParticipants.Add(MaleWaitingList[0]); MaleWaitingList.RemoveAt(0); }
-                else if (FemaleParticipants.Count < 9 && FemaleWaitingList.Any()) { FemaleParticipants.Add(FemaleWaitingList[0]); FemaleWaitingList.RemoveAt(0); }
-                else if (MaleWaitingList.Any()) { MaleParticipants.Add(MaleWaitingList[0]); MaleWaitingList.RemoveAt(0); }
-                else if (FemaleWaitingList.Any()) { FemaleParticipants.Add(FemaleWaitingList[0]); FemaleWaitingList.RemoveAt(0); }
-                else break;
+
+            // 2. 處理外卡彈性借格 (男性滿 9 但女性有空缺，或者女性滿 9 但男性有空缺)
+            // 此時剩餘的未分配者，必須純粹依據時間戳先後，誰早誰就先去填補對方性別的空缺格子
+            var remainingPool = malePool.Skip(mIdx).Select(x => new { x.Name, x.Gender, x.Timestamp })
+                .Concat(femalePool.Skip(fIdx).Select(x => new { x.Name, x.Gender, x.Timestamp }))
+                .OrderBy(x => x.Timestamp).ToList();
+
+            foreach (var p in remainingPool) {
+                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp:D14}";
+                if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
+                    if (p.Gender == "男") MaleParticipants.Add(saveStr);
+                    else FemaleParticipants.Add(saveStr);
+                } else {
+                    // 如果總數 18 也滿了，各自歸隊到所屬性別的獨立候補
+                    if (p.Gender == "男") MaleWaitingList.Add(saveStr);
+                    else FemaleWaitingList.Add(saveStr);
+                }
             }
         } else {
-            // 先報先贏：只要正選不滿 18 且綜合候補(MaleWaitingList)有球員，依序補上
-            while (MaleParticipants.Count + FemaleParticipants.Count < 18 && MaleWaitingList.Any()) {
-                string rawName = MaleWaitingList[0];
-                MaleWaitingList.RemoveAt(0);
-                if (rawName.EndsWith("(男)")) {
-                    MaleParticipants.Add(rawName.Substring(0, rawName.Length - 3));
-                } else if (rawName.EndsWith("(女)")) {
-                    FemaleParticipants.Add(rawName.Substring(0, rawName.Length - 3));
+            // 先報先贏核心演算法：總正選上限 18，滿額丟入綜合候補 (MaleWaitingList)
+            foreach (var p in sortedPool) {
+                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp:D14}";
+                if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
+                    if (p.Gender == "男") MaleParticipants.Add(saveStr);
+                    else FemaleParticipants.Add(saveStr);
                 } else {
-                    // 防呆：若無標記預設進男名單
-                    MaleParticipants.Add(rawName);
+                    MaleWaitingList.Add(saveStr); 
                 }
             }
         }
     }
 
     public string RemovePlayer(string n, int c, bool o, string g) {
+        Rebalance();
         int rem = 0; bool warn = false;
-        if (IsGenderBalanceEnabled) {
-            List<string> list = (g == "男") ? MaleParticipants : FemaleParticipants;
-            List<string> wait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
-            for (int i = 0; i < c; i++) {
-                if (wait.Contains(n)) { wait.RemoveAt(wait.LastIndexOf(n)); rem++; }
-                else if (list.Contains(n)) { list.RemoveAt(list.LastIndexOf(n)); rem++; if (o) warn = true; }
-            }
-        } else {
-            // 先報先贏：正選直接找，候補找帶有性別標記的項目
-            string targetWaitName = $"{n}({g})";
-            for (int i = 0; i < c; i++) {
-                if (MaleWaitingList.Contains(targetWaitName)) {
-                    MaleWaitingList.RemoveAt(MaleWaitingList.LastIndexOf(targetWaitName));
+        
+        void TargetRemove(List<string> list) {
+            for (int i = list.Count - 1; i >= 0; i--) {
+                if (rem >= c) break;
+                if (list[i].Split('|')[0] == n && list[i].Split('|')[1] == g) {
+                    list.RemoveAt(i);
                     rem++;
-                } else if (g == "男" && MaleParticipants.Contains(n)) {
-                    MaleParticipants.RemoveAt(MaleParticipants.LastIndexOf(n));
-                    rem++; if (o) warn = true;
-                } else if (g == "女" && FemaleParticipants.Contains(n)) {
-                    FemaleParticipants.RemoveAt(FemaleParticipants.LastIndexOf(n));
-                    rem++; if (o) warn = true;
                 }
             }
         }
+
+        if (IsGenderBalanceEnabled) {
+            var wait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
+            var part = (g == "男") ? MaleParticipants : FemaleParticipants;
+            
+            TargetRemove(wait);
+            if (rem < c) {
+                int beforeRem = rem;
+                TargetRemove(part);
+                if (rem > beforeRem && o) warn = true;
+            }
+        } else {
+            TargetRemove(MaleWaitingList);
+            if (rem < c) {
+                int beforeRem = rem;
+                if (g == "男") TargetRemove(MaleParticipants);
+                else TargetRemove(FemaleParticipants);
+                if (rem > beforeRem && o) warn = true;
+            }
+        }
+
         Rebalance();
         return warn ? $"{n}您好，因過取消期限若無遞補仍需繳費" : $"❌ {n} 已取消 {g} {rem}位";
     }
@@ -1504,12 +1564,23 @@ public class VolleyData
     public void ResetToQuarterly() {
         MaleParticipants.Clear(); FemaleParticipants.Clear(); 
         MaleWaitingList.Clear(); FemaleWaitingList.Clear();
-        // 確保只加入現有的季打
-        MaleParticipants.AddRange(MaleQuarterly.Take(MaxMale)); 
-        FemaleParticipants.AddRange(FemaleQuarterly.Take(MaxFemale));
+        
+        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
+        
+        int diffToReset = ((int)ResetDay - (int)now.DayOfWeek);
+        DateTime baseResetDate = now.Date.AddDays(diffToReset);
+        string 保底Timestamp = baseResetDate.ToString("yyyyMMdd") + $"{ResetHour:D2}{ResetMinute:D2}00";
+
+        foreach (var m in MaleQuarterly.Take(MaxMale)) {
+            MaleParticipants.Add($"{m}|男|{保底Timestamp}");
+        }
+        foreach (var f in FemaleQuarterly.Take(MaxFemale)) {
+            FemaleParticipants.Add($"{f}|女|{保底Timestamp}");
+        }
         
         ClosedDates.Clear();
-        AcRecords.Clear(); // 🚩 必加：避免舊的冷氣紀錄帶到新的一週
+        AcRecords.Clear(); 
     }
     public string GetDayString(DayOfWeek d) => d switch { DayOfWeek.Monday=>"一", DayOfWeek.Tuesday=>"二", DayOfWeek.Wednesday=>"三", DayOfWeek.Thursday=>"四", DayOfWeek.Friday=>"五", DayOfWeek.Saturday=>"六", DayOfWeek.Sunday=>"日", _=>"" };
     public bool IsDeadlinePassed(DayOfWeek? targetDay, int h, int m)
