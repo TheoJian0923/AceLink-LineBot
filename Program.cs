@@ -958,12 +958,10 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd == "移除取消期限") { data.CancelDeadlineDay = null; manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除取消期限。"); continue; }
 
                 // 💡 管理員擴充指令：設定可報名時間
-                if (cmd == "設定可報名時間" && lines.Count >= 5)
+                if (cmd == "設定可報名時間" && lines.Count >= 3)
                 {
                     data.RegistrationStartDay = lines[1].Trim();
                     data.RegistrationStartTime = lines[2].Trim();
-                    data.RegistrationEndDay = lines[3].Trim();
-                    data.RegistrationEndTime = lines[4].Trim();
                     manager.Save(groupId, data);
 
                     string toChineseDay(string eng) => Enum.TryParse<DayOfWeek>(eng, true, out var d) ? d switch {
@@ -972,25 +970,27 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         DayOfWeek.Sunday => "星期日", _ => eng
                     } : eng;
 
+                    string formattedTime = data.RegistrationStartTime.Length == 4 
+                        ? $"{data.RegistrationStartTime.Substring(0, 2)}:{data.RegistrationStartTime.Substring(2, 2)}" 
+                        : data.RegistrationStartTime;
+
                     await lineClient.ReplyMessageAsync(replyToken, 
-                        $"📅 開放報名區間設定成功！\n" +
+                        $"📅 報名開放時間設定成功！\n" +
                         $"------------------\n" +
-                        $"● 開始：{toChineseDay(data.RegistrationStartDay)} {data.RegistrationStartTime}\n" +
-                        $"● 結束：{toChineseDay(data.RegistrationEndDay)} {data.RegistrationEndTime}\n" +
+                        $"● 開始開放：每週 {toChineseDay(data.RegistrationStartDay)} {formattedTime}\n" +
+                        $"● 報名截止：{(data.DeadlineDay.HasValue ? $"每週 {toChineseDay(data.DeadlineDay.Value.ToString())} {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : $"比賽開始前 (每週 {toChineseDay(data.MatchDay.ToString())} {data.MatchHour:D2}:{data.MatchMinute:D2})")}\n" +
                         $"------------------\n" +
                         $"⚠️ 非此時段內一般球員將無法使用 +1 報名功能（不限制管理員與取消報名）。");
                     continue;
                 }
 
-                // 💡 管理員擴充指令：移除可報名時間
+                // 💡 管理員擴充指令：移除報名時間
                 if (cmd == "移除可報名時間")
                 {
                     data.RegistrationStartDay = "";
                     data.RegistrationStartTime = "";
-                    data.RegistrationEndDay = "";
-                    data.RegistrationEndTime = "";
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除可報名時間限制，系統恢復為隨時可自由報名狀態。");
+                    await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除報名時間限制，系統恢復為隨時可自由報名狀態。");
                     continue;
                 }
 
@@ -1170,7 +1170,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 if (!data.IsWithinRegistrationPeriod(out string formattedRange))//測試用，會阻擋管理員與開發者
                                 //if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
                                 {
-                                    await lineClient.ReplyMessageAsync(replyToken, $"您好，現在非報名時間請在{formattedRange}時間段做報名動作，感謝您");
+                                    await lineClient.ReplyMessageAsync(replyToken, $"⚠️ 本週報名尚未開放！開放報名時間為：每週{formattedRange}，感謝您。");
                                 }
                                 else if (data.IsDeadlinePassed(data.DeadlineDay, data.DeadlineHour, data.DeadlineMinute))
                                 {
@@ -1299,8 +1299,6 @@ public class VolleyData
     public string? NewName { get; set; } = null;
     public string RegistrationStartDay { get; set; } = "";
     public string RegistrationStartTime { get; set; } = "";
-    public string RegistrationEndDay { get; set; } = "";
-    public string RegistrationEndTime { get; set; } = "";
 
     /// <summary>
     /// 💡 核心新功能：判定當前時間是否落於目前名單日期同步的開放報名區間內
@@ -1309,62 +1307,67 @@ public class VolleyData
     {
         formattedRange = "";
         
-        // 若未完整設定，代表不設限制（維持現狀）
-        if (string.IsNullOrEmpty(RegistrationStartDay) || string.IsNullOrEmpty(RegistrationStartTime) ||
-            string.IsNullOrEmpty(RegistrationEndDay) || string.IsNullOrEmpty(RegistrationEndTime))
+        // 若未完整設定開放時間，代表不設限制（隨時可報名）
+        if (string.IsNullOrEmpty(RegistrationStartDay) || string.IsNullOrEmpty(RegistrationStartTime))
         {
             return true;
         }
 
-        // 解析星期字串
-        if (!Enum.TryParse(RegistrationStartDay, true, out DayOfWeek startDay) ||
-            !Enum.TryParse(RegistrationEndDay, true, out DayOfWeek endDay))
+        // 解析開始星期字串
+        if (!Enum.TryParse(RegistrationStartDay, true, out DayOfWeek startDay))
         {
             return true;
         }
 
-        // 解析時間 (格式需為 4 位數，如 1200)
-        if (RegistrationStartTime.Length != 4 || RegistrationEndTime.Length != 4 ||
+        // 解析開始時間 (格式需為 4 位數，如 1200)
+        if (RegistrationStartTime.Length != 4 ||
             !int.TryParse(RegistrationStartTime.Substring(0, 2), out int startH) ||
-            !int.TryParse(RegistrationStartTime.Substring(2, 2), out int startM) ||
-            !int.TryParse(RegistrationEndTime.Substring(0, 2), out int endH) ||
-            !int.TryParse(RegistrationEndTime.Substring(2, 2), out int endM))
+            !int.TryParse(RegistrationStartTime.Substring(2, 2), out int startM))
         {
             return true;
         }
 
-        // 組裝親切的中文提示格式
+        // 組裝親切的中文提示格式 (例如：星期三12:00)
         string toChineseDay(DayOfWeek d) => d switch {
             DayOfWeek.Monday => "星期一", DayOfWeek.Tuesday => "星期二", DayOfWeek.Wednesday => "星期三",
             DayOfWeek.Thursday => "星期四", DayOfWeek.Friday => "星期五", DayOfWeek.Saturday => "星期六",
             DayOfWeek.Sunday => "星期日", _ => ""
         };
-        formattedRange = $"{toChineseDay(startDay)}{startH:D2}:{startM:D2} ~ {toChineseDay(endDay)}{endH:D2}:{endM:D2}";
-
-        // 核心邏輯：直接獲取當前名單看板對齊的下一場球賽絕對日期
-        DateTime matchDate = GetNextMatchDate();
-
-        // 以該場球賽當週的「星期一 00:00:00」作為時間軸原點基準
-        int daysToSubtract = ((int)matchDate.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        DateTime mondayEpoch = matchDate.Date.AddDays(-daysToSubtract);
-
-        // 計算該週設定的開放起訖絕對時間點
-        int startDayOffset = ((int)startDay - (int)DayOfWeek.Monday + 7) % 7;
-        DateTime startAbsolute = mondayEpoch.AddDays(startDayOffset).AddHours(startH).AddMinutes(startM);
-
-        int endDayOffset = ((int)endDay - (int)DayOfWeek.Monday + 7) % 7;
-        DateTime endAbsolute = mondayEpoch.AddDays(endDayOffset).AddHours(endH).AddMinutes(endM);
-
-        // 跨週間循環修正：如果結束時間的絕對點比開始時間還早，代表跨越了星期日，結束點應向後修正一週
-        if (endAbsolute < startAbsolute)
-        {
-            endAbsolute = endAbsolute.AddDays(7);
-        }
+        formattedRange = $"{toChineseDay(startDay)}{startH:D2}:{startM:D2}";
 
         // 取得當前台北時間進行精確比對
         var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
         var nowTaipei = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
 
+        // 核心邏輯：先找到目前名單對齊的下一場球賽絕對日期點
+        DateTime matchDate = GetNextMatchDate();
+
+        // 1. 計算本週關閉報名的絕對時間截止點 (End Point)
+        DateTime endAbsolute;
+        if (DeadlineDay.HasValue)
+        {
+            // 有設定報名期限，以報名期限為準。從比賽日往前回推到截止星期
+            int diffToDeadline = ((int)matchDate.DayOfWeek - (int)DeadlineDay.Value + 7) % 7;
+            endAbsolute = matchDate.Date.AddDays(-diffToDeadline).AddHours(DeadlineHour).AddMinutes(DeadlineMinute);
+        }
+        else
+        {
+            // 沒設定報名期限，依您的指示：直接以「比賽開始時間」當作終點
+            endAbsolute = matchDate.Date.AddHours(MatchHour).AddMinutes(MatchMinute);
+        }
+
+        // 2. 計算對應這一場球賽截止點的「開放開始時間點」 (Start Point)
+        // 開放點通常在截止點之前，我們由截止點 (endAbsolute) 所在的那一週或往前推算
+        int diffToStart = ((int)endAbsolute.DayOfWeek - (int)startDay + 7) % 7;
+        DateTime startAbsolute = endAbsolute.Date.AddDays(-diffToStart).AddHours(startH).AddMinutes(startM);
+
+        // 跨週間循環修正：如果算出來的開放點反而比截止點晚（例如同天但時間比較晚，或是回推錯週），將開放點往前移一週
+        if (startAbsolute >= endAbsolute)
+        {
+            startAbsolute = startAbsolute.AddDays(-7);
+        }
+
+        // 判定：當前時間必須大於等於開放點，且小於等於截止點
         return nowTaipei >= startAbsolute && nowTaipei <= endAbsolute;
     }
 
