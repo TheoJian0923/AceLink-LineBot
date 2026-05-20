@@ -1654,13 +1654,30 @@ public class VolleyData
         }
 
         if (IsGenderBalanceEnabled) {
-            var wait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
-            var part = (g == "男") ? MaleParticipants : FemaleParticipants;
+            // 💡 終極修正：不管是 -男 還是 -女，因為有外卡借格機制，阿俊的名字可能散落在各個 List 中！
+            // 依據後進先出原則，取消順序為：自身性別候補 -> 隊友性別候補 -> 自身性別正選 -> 隊友性別正選
+            var ownWait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
+            var oppWait = (g == "男") ? FemaleWaitingList : MaleWaitingList;
+            var ownPart = (g == "男") ? MaleParticipants : FemaleParticipants;
+            var oppPart = (g == "男") ? FemaleParticipants : MaleParticipants;
             
-            TargetRemove(wait);
+            // 1. 先扣除自己性別的候補
+            TargetRemove(ownWait);
+            
+            // 2. 扣不夠，再扣對方性別的候補 (防呆)
+            if (rem < c) TargetRemove(oppWait);
+            
+            // 3. 還不夠，開始扣除自己性別的正選格子
             if (rem < c) {
                 int beforeRem = rem;
-                TargetRemove(part);
+                TargetRemove(ownPart);
+                if (rem > beforeRem && o) warn = true;
+            }
+            
+            // 4. 還是不夠（代表有外卡借格溢到對面的情況），直接去對面的正選格子把符合該性別的資料挖出來扣除！
+            if (rem < c) {
+                int beforeRem = rem;
+                TargetRemove(oppPart);
                 if (rem > beforeRem && o) warn = true;
             }
         } else {
