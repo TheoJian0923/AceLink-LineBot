@@ -397,20 +397,25 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? "開啟 (9男9女優先)" : "關閉 (先報先贏)")}");
                     sb.AppendLine($"● 重置時間：週{data.GetDayString(data.ResetDay)} {data.ResetHour:D2}:{data.ResetMinute:D2}");
                     sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
-                    sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
-                    sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
                     
-                    string regPeriodStatus = "自由開放 (無時段限制)";
+                    // 💡 解析並格式化開始報名時間，以便在報名期限上方呈現
+                    string toChineseDayStr(string eng) => Enum.TryParse<DayOfWeek>(eng, true, out var d) ? d switch {
+                        DayOfWeek.Monday => "一", DayOfWeek.Tuesday => "二", DayOfWeek.Wednesday => "三",
+                        DayOfWeek.Thursday => "四", DayOfWeek.Friday => "五", DayOfWeek.Saturday => "六",
+                        DayOfWeek.Sunday => "日", _ => eng
+                    } : eng;
+
+                    string regStartStatus = "未設定 (隨時可報名)";
                     if (!string.IsNullOrEmpty(data.RegistrationStartDay))
                     {
-                        string toChineseDayStr(string eng) => Enum.TryParse<DayOfWeek>(eng, true, out var d) ? d switch {
-                            DayOfWeek.Monday => "一", DayOfWeek.Tuesday => "二", DayOfWeek.Wednesday => "三",
-                            DayOfWeek.Thursday => "四", DayOfWeek.Friday => "五", DayOfWeek.Saturday => "六",
-                            DayOfWeek.Sunday => "日", _ => eng
-                        } : eng;
-                        regPeriodStatus = $"週{toChineseDayStr(data.RegistrationStartDay)} {data.RegistrationStartTime} ~ 週{toChineseDayStr(data.RegistrationEndDay)} {data.RegistrationEndTime}";
+                        string formattedStart = data.RegistrationStartTime.Length == 4 
+                            ? $"{data.RegistrationStartTime.Substring(0, 2)}:{data.RegistrationStartTime.Substring(2, 2)}" 
+                            : data.RegistrationStartTime;
+                        regStartStatus = $"週{toChineseDayStr(data.RegistrationStartDay)} {formattedStart}";
                     }
-                    sb.AppendLine($"● 報名時段：{regPeriodStatus}");
+                    sb.AppendLine($"● 開始報名：{regStartStatus}");
+                    sb.AppendLine($"● 報名期限：{(data.DeadlineDay.HasValue ? $"週({data.DeadlineDay}) {data.DeadlineHour:D2}:{data.DeadlineMinute:D2}" : "未設定")}");
+                    sb.AppendLine($"● 取消期限：{(data.CancelDeadlineDay.HasValue ? $"週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}" : "未設定")}");
                     
                     sb.AppendLine($"● 雲端網址：{(string.IsNullOrEmpty(data.GasUrl) ? "未設定" : "已設定")}");
                     sb.AppendLine($"● 冷氣模式：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}");
