@@ -1643,10 +1643,17 @@ public class VolleyData
         Rebalance();
         int rem = 0; bool warn = false;
         
-        void TargetRemove(List<string> list) {
+        void TargetRemove(List<string> list, bool onlyMatchGender) {
             for (int i = list.Count - 1; i >= 0; i--) {
                 if (rem >= c) break;
-                if (list[i].Split('|')[0] == n && list[i].Split('|')[1] == g) {
+
+                var parts = list[i].Split('|');
+                if (parts.Length < 2) continue;
+
+                bool isSameName = parts[0] == n;
+                bool isSameGender = parts[1] == g;
+
+                if (isSameName && (!onlyMatchGender || isSameGender)) {
                     list.RemoveAt(i);
                     rem++;
                 }
@@ -1654,38 +1661,55 @@ public class VolleyData
         }
 
         if (IsGenderBalanceEnabled) {
-            // 💡 終極修正：不管是 -男 還是 -女，因為有外卡借格機制，阿俊的名字可能散落在各個 List 中！
-            // 依據後進先出原則，取消順序為：自身性別候補 -> 隊友性別候補 -> 自身性別正選 -> 隊友性別正選
+            // 💡 男女平衡開啟時，因為外卡借格會讓同一個人的報名分散在不同 List，
+            // 若只用性別刪除，會發生 -11 女 只刪到「阿俊|女」而無法刪除「阿俊|男」的問題。
+            // 因此修正為：先刪指定性別，若數量不足，再刪同名的其他性別資料。
             var ownWait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
             var oppWait = (g == "男") ? FemaleWaitingList : MaleWaitingList;
             var ownPart = (g == "男") ? MaleParticipants : FemaleParticipants;
             var oppPart = (g == "男") ? FemaleParticipants : MaleParticipants;
             
-            // 1. 先扣除自己性別的候補
-            TargetRemove(ownWait);
+            // 1. 優先刪除指定性別的候補
+            TargetRemove(ownWait, true);
             
-            // 2. 扣不夠，再扣對方性別的候補 (防呆)
-            if (rem < c) TargetRemove(oppWait);
+            // 2. 指定性別候補不足時，再檢查對方候補中是否有因外卡借格造成的指定性別資料
+            if (rem < c) TargetRemove(oppWait, true);
             
-            // 3. 還不夠，開始扣除自己性別的正選格子
+            // 3. 指定性別候補仍不足時，刪除指定性別正選
             if (rem < c) {
                 int beforeRem = rem;
-                TargetRemove(ownPart);
+                TargetRemove(ownPart, true);
                 if (rem > beforeRem && o) warn = true;
             }
             
-            // 4. 還是不夠（代表有外卡借格溢到對面的情況），直接去對面的正選格子把符合該性別的資料挖出來扣除！
+            // 4. 指定性別正選仍不足時，檢查對方正選中是否有指定性別資料
             if (rem < c) {
                 int beforeRem = rem;
-                TargetRemove(oppPart);
+                TargetRemove(oppPart, true);
+                if (rem > beforeRem && o) warn = true;
+            }
+
+            // 5. 若指定性別資料不足，但同一個人還有其他性別報名紀錄，繼續刪除同名資料直到達到取消數量
+            if (rem < c) TargetRemove(ownWait, false);
+            if (rem < c) TargetRemove(oppWait, false);
+
+            if (rem < c) {
+                int beforeRem = rem;
+                TargetRemove(ownPart, false);
+                if (rem > beforeRem && o) warn = true;
+            }
+
+            if (rem < c) {
+                int beforeRem = rem;
+                TargetRemove(oppPart, false);
                 if (rem > beforeRem && o) warn = true;
             }
         } else {
-            TargetRemove(MaleWaitingList);
+            TargetRemove(MaleWaitingList, false);
             if (rem < c) {
                 int beforeRem = rem;
-                if (g == "男") TargetRemove(MaleParticipants);
-                else TargetRemove(FemaleParticipants);
+                if (g == "男") TargetRemove(MaleParticipants, false);
+                else TargetRemove(FemaleParticipants, false);
                 if (rem > beforeRem && o) warn = true;
             }
         }
