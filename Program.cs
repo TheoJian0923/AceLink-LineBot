@@ -1167,8 +1167,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             if (action == "+")
                             {
                                 // 💡 核心時段攔截機制：非管理員且非開發者時，進行可報名區間檢核
-                                if (!data.IsWithinRegistrationPeriod(out string formattedRange))//測試用，會阻擋管理員與開發者
-                                //if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
+                                //if (!data.IsWithinRegistrationPeriod(out string formattedRange))//測試用，會阻擋管理員與開發者
+                                if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
                                 {
                                     await lineClient.ReplyMessageAsync(replyToken, $"⚠️ 本週報名尚未開放！開放報名時間為：每週{formattedRange}，感謝您。");
                                 }
