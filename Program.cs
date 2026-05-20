@@ -1192,7 +1192,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             {
                                 bool overdue = data.IsDeadlinePassed(data.CancelDeadlineDay, data.CancelDeadlineHour, data.CancelDeadlineMinute);
                                 bool isSelfCancel = string.IsNullOrEmpty(targetName);
-                                string res = data.RemovePlayer(finalName, count, overdue, gender, isSelfCancel);
+                                string res = data.RemovePlayer(finalName, count, overdue, gender);
                                 
                                 manager.Save(groupId, data); 
                                 _ = data.SyncToSheets(lineClient, groupId); 
