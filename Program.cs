@@ -393,9 +393,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 比賽時間：週{data.GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2}");
                     sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
-                    sb.AppendLine($"● 自動重置：{(data.IsResetEnabled ? "開啟" : "關閉")}");
+                    sb.AppendLine($"● 自動重置：週{data.GetDayString(data.ResetDay)} {data.ResetHour:D2}:{data.ResetMinute:D2}");
                     sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? "開啟 (9男9女優先)" : "關閉 (先報先贏)")}");
-                    sb.AppendLine($"● 重置時間：週{data.GetDayString(data.ResetDay)} {data.ResetHour:D2}:{data.ResetMinute:D2}");
                     sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
                     
                     // 💡 解析並格式化開始報名時間，以便在報名期限上方呈現
@@ -572,7 +571,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "重置", "確認重置", "系統初始化", "管理員指令", "設定季打費用", "設定冷氣費用", 
                 "設定季打時間", "設定重置時間", "設定報名期限", "設定取消期限", "移除報名期限", 
                 "移除取消期限", "增加季打", "更新季打成員", "移除季打", "修改季打成員名稱", 
-                "查詢季打", "增加報名", "取消報名","開啟男女平衡","關閉男女平衡","設定可報名時間","移除可報名時間" 
+                "查詢季打", "增加報名", "取消報名","開啟男女平衡","關閉男女平衡","設定開始報名時間","移除開始報名時間" 
             };
             bool isAdminCmd = adminCommands.Contains(cmd) || 
                               Regex.IsMatch(userMessage, @"^(\d{8})\s*(開冷氣|關冷氣|無開場|有開場)$") ||
@@ -802,11 +801,11 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     ● [開啟/關閉]男女平衡
 
     【 💡 開放報名時段控制 】
-    ● 設定可報名時間 ↵ 
+    ● 設定開始報名時間 ↵ 
       開始星期 (英文) ↵ 開始時間 (HHmm) ↵ 
       結束星期 (英文) ↵ 結束時間 (HHmm)
       (範例：Wednesday ↵ 1200 ↵ Tuesday ↵ 1930)
-    ● 移除可報名時間 (恢復自由報名)
+    ● 移除開始報名時間 (恢復自由報名)
 
     【 費用與日期控制 】
     ● 設定[季打/冷氣]費用 [金額]
@@ -962,8 +961,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (cmd == "移除報名期限") { data.DeadlineDay = null; manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除報名期限。"); continue; }
                 if (cmd == "移除取消期限") { data.CancelDeadlineDay = null; manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, "✅ 已移除取消期限。"); continue; }
 
-                // 💡 管理員擴充指令：設定可報名時間
-                if (cmd == "設定可報名時間" && lines.Count >= 3)
+                // 💡 管理員擴充指令：設定開始報名時間
+                if (cmd == "設定開始報名時間" && lines.Count >= 3)
                 {
                     data.RegistrationStartDay = lines[1].Trim();
                     data.RegistrationStartTime = lines[2].Trim();
@@ -990,7 +989,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 }
 
                 // 💡 管理員擴充指令：移除報名時間
-                if (cmd == "移除可報名時間")
+                if (cmd == "移除開始報名時間")
                 {
                     data.RegistrationStartDay = "";
                     data.RegistrationStartTime = "";
