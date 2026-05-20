@@ -1643,9 +1643,9 @@ public class VolleyData
         }
     }
 
-    public string RemovePlayer(string n, int c, bool o, string g, bool isSelfCancel) {
+    public string RemovePlayer(string n, int c, bool o, string g) {
         Rebalance();
-        int rem = 0; bool warn = false; 
+        int rem = 0; bool warn = false;
         
         void TargetRemove(List<string> list, bool isParticipantList) {
             for (int i = list.Count - 1; i >= 0; i--) {
@@ -1657,7 +1657,7 @@ public class VolleyData
                 bool isSameName = parts[0] == n;
                 bool isSameGender = parts[1] == g;
 
-                if (isSameName && (isSelfCancel || isSameGender)) {
+                if (isSameName && isSameGender) {
                     list.RemoveAt(i);
                     rem++;
 
