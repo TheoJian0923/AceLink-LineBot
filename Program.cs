@@ -1191,7 +1191,8 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                             else
                             {
                                 bool overdue = data.IsDeadlinePassed(data.CancelDeadlineDay, data.CancelDeadlineHour, data.CancelDeadlineMinute);
-                                string res = data.RemovePlayer(finalName, count, overdue, gender);
+                                bool isSelfCancel = string.IsNullOrEmpty(targetName);
+                                string res = data.RemovePlayer(finalName, count, overdue, gender, isSelfCancel);
                                 
                                 manager.Save(groupId, data); 
                                 _ = data.SyncToSheets(lineClient, groupId); 
@@ -1540,7 +1541,8 @@ public class VolleyData
         Rebalance();
     }
 
-    public void Rebalance() {
+    public void Rebalance() 
+    {
         var allPlayers = new List<(string Name, string Gender, long Timestamp)>();
         
         // 💡 終極修正：將所有防呆的基準起點，全部推到絕對歷史過去（2026/01/01），確保任何新報名都排在後面
@@ -1569,7 +1571,8 @@ public class VolleyData
         ExtractToList(MaleParticipants, "男");
         ExtractToList(FemaleParticipants, "女");
         
-        if (IsGenderBalanceEnabled) {
+        if (IsGenderBalanceEnabled) 
+        {
             ExtractToList(MaleWaitingList, "男");
             ExtractToList(FemaleWaitingList, "女");
         } else {
@@ -1581,7 +1584,8 @@ public class VolleyData
 
         var sortedPool = allPlayers.OrderBy(x => x.Timestamp).ToList();
 
-        if (IsGenderBalanceEnabled) {
+        if (IsGenderBalanceEnabled) 
+        {
             // 男女平衡核心演算法 (含外卡遞補機制)
             var malePool = sortedPool.Where(x => x.Gender == "男").ToList();
             var femalePool = sortedPool.Where(x => x.Gender == "女").ToList();
@@ -1639,11 +1643,11 @@ public class VolleyData
         }
     }
 
-    public string RemovePlayer(string n, int c, bool o, string g) {
+    public string RemovePlayer(string n, int c, bool o, string g, bool isSelfCancel) {
         Rebalance();
-        int rem = 0; bool warn = false;
+        int rem = 0; bool warn = false; 
         
-        void TargetRemove(List<string> list, bool onlyMatchGender) {
+        void TargetRemove(List<string> list, bool isParticipantList) {
             for (int i = list.Count - 1; i >= 0; i--) {
                 if (rem >= c) break;
 
@@ -1653,65 +1657,31 @@ public class VolleyData
                 bool isSameName = parts[0] == n;
                 bool isSameGender = parts[1] == g;
 
-                if (isSameName && (!onlyMatchGender || isSameGender)) {
+                if (isSameName && (isSelfCancel || isSameGender)) {
                     list.RemoveAt(i);
                     rem++;
+
+                    if (isParticipantList && o) {
+                        warn = true;
+                    }
                 }
             }
         }
 
         if (IsGenderBalanceEnabled) {
-            // 💡 男女平衡開啟時，因為外卡借格會讓同一個人的報名分散在不同 List，
-            // 若只用性別刪除，會發生 -11 女 只刪到「阿俊|女」而無法刪除「阿俊|男」的問題。
-            // 因此修正為：先刪指定性別，若數量不足，再刪同名的其他性別資料。
             var ownWait = (g == "男") ? MaleWaitingList : FemaleWaitingList;
             var oppWait = (g == "男") ? FemaleWaitingList : MaleWaitingList;
             var ownPart = (g == "男") ? MaleParticipants : FemaleParticipants;
             var oppPart = (g == "男") ? FemaleParticipants : MaleParticipants;
             
-            // 1. 優先刪除指定性別的候補
-            TargetRemove(ownWait, true);
-            
-            // 2. 指定性別候補不足時，再檢查對方候補中是否有因外卡借格造成的指定性別資料
-            if (rem < c) TargetRemove(oppWait, true);
-            
-            // 3. 指定性別候補仍不足時，刪除指定性別正選
-            if (rem < c) {
-                int beforeRem = rem;
-                TargetRemove(ownPart, true);
-                if (rem > beforeRem && o) warn = true;
-            }
-            
-            // 4. 指定性別正選仍不足時，檢查對方正選中是否有指定性別資料
-            if (rem < c) {
-                int beforeRem = rem;
-                TargetRemove(oppPart, true);
-                if (rem > beforeRem && o) warn = true;
-            }
-
-            // 5. 若指定性別資料不足，但同一個人還有其他性別報名紀錄，繼續刪除同名資料直到達到取消數量
-            if (rem < c) TargetRemove(ownWait, false);
+            TargetRemove(ownWait, false);
             if (rem < c) TargetRemove(oppWait, false);
-
-            if (rem < c) {
-                int beforeRem = rem;
-                TargetRemove(ownPart, false);
-                if (rem > beforeRem && o) warn = true;
-            }
-
-            if (rem < c) {
-                int beforeRem = rem;
-                TargetRemove(oppPart, false);
-                if (rem > beforeRem && o) warn = true;
-            }
+            if (rem < c) TargetRemove(ownPart, true);
+            if (rem < c) TargetRemove(oppPart, true);
         } else {
             TargetRemove(MaleWaitingList, false);
-            if (rem < c) {
-                int beforeRem = rem;
-                if (g == "男") TargetRemove(MaleParticipants, false);
-                else TargetRemove(FemaleParticipants, false);
-                if (rem > beforeRem && o) warn = true;
-            }
+            if (rem < c) TargetRemove(MaleParticipants, true);
+            if (rem < c) TargetRemove(FemaleParticipants, true);
         }
 
         Rebalance();
