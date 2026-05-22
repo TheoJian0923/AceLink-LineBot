@@ -1611,6 +1611,7 @@ public class VolleyData
             ExtractToList(FemaleWaitingList, "女");
         } else {
             ExtractToList(MaleWaitingList, "男");
+            ExtractToList(FemaleWaitingList, "女");
         }
 
         MaleParticipants.Clear(); FemaleParticipants.Clear();
