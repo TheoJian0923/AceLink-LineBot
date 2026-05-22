@@ -912,6 +912,11 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     if (int.TryParse(lines[3].Trim(), out int prepaid))
                     {
                         data.PrepaidFee = prepaid;
+
+                        // 防呆：新賽季建表前清除一次性改名標記，避免舊 JSON 殘留造成 GAS 重新套用改名
+                        data.OldName = null;
+                        data.NewName = null;
+
                         manager.Save(groupId, data); 
                         
                         await lineClient.ReplyMessageAsync(replyToken, $"✅ 新賽季設定成功！\n期間：{data.SeasonStart}~{data.SeasonEnd}\n預收金額：{data.PrepaidFee}\n(比賽時間沿用原設定：每週{data.GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2})\n雲端表格已切換至新分頁。");
@@ -923,6 +928,10 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 // 記錄今日已手動完成重置，避免自動重置重複執行
                                 var taipeiNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time"));
                                 data.LastResetDate = taipeiNow.ToString("yyyyMMdd");
+
+                                // 防呆：背景同步前再次確保一次性改名標記已清除
+                                data.OldName = null;
+                                data.NewName = null;
 
                                 manager.Save(groupId, data);
                                 
@@ -1043,16 +1052,22 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                         manager.Save(groupId, data);
                         
-                        // 6. 立即同步至雲端 (記得帶入參數)
-                        _ = data.SyncToSheets(lineClient, groupId);
+                        try
+                        {
+                            // 6. 立即同步至雲端 (記得帶入參數)
+                            await data.SyncToSheets(lineClient, groupId);
+                        }
+                        finally
+                        {
+                            // 清除暫存標記，避免後續新賽季建表或一般同步重複套用改名
+                            data.OldName = null;
+                            data.NewName = null;
+                            manager.Save(groupId, data);
+                        }
 
                         // 7. 回覆成功訊息，並顯示更新後的報名狀態
                         string currentStatus = data.GetFormattedList($"✅ 已將 [{oldName}] 修改為 [{newName}]");
                         await lineClient.ReplyMessageAsync(replyToken, currentStatus);
-
-                        // 清除暫存標記
-                        data.OldName = null;
-                        data.NewName = null;
                     }
                     else await lineClient.ReplyMessageAsync(replyToken, $"❌ 找不到成員: {oldName}");
                     
@@ -1743,8 +1758,8 @@ public class VolleyData
             matchDate = targetDate.ToString("yyyy/MM/dd"), 
             currentParticipants = finalParticipants, 
             quarterlyMembers = MaleQuarterly.Concat(FemaleQuarterly).ToList(), 
-            oldName = this.OldName,
-            newName = this.NewName,
+            oldName = isNewSeason ? null : this.OldName,
+            newName = isNewSeason ? null : this.NewName,
             isAcOn = effectiveAcOn, 
             isClosed = ClosedDates.GetValueOrDefault(dKey, false), 
             quarterlyFee = QuarterlyFee, 
