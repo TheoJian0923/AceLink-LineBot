@@ -1028,6 +1028,25 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                     bool found = false;
 
+                    string RenamePlayerRecord(string record)
+                    {
+                        if (string.IsNullOrEmpty(record)) return record;
+
+                        var parts = record.Split('|');
+                        if (parts.Length >= 1 && parts[0].Trim() == oldName)
+                        {
+                            parts[0] = newName;
+                            return string.Join("|", parts);
+                        }
+
+                        if (record.Trim() == oldName)
+                        {
+                            return newName;
+                        }
+
+                        return record;
+                    }
+
                     // 1. 更新季打名單 (Quarterly)
                     if (data.MaleQuarterly.Contains(oldName)) { data.MaleQuarterly.Remove(oldName); data.MaleQuarterly.Add(newName); found = true; }
                     else if (data.FemaleQuarterly.Contains(oldName)) { data.FemaleQuarterly.Remove(oldName); data.FemaleQuarterly.Add(newName); found = true; }
@@ -1035,12 +1054,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     if (found)
                     {
                         // 2. 同步更新「當週報名名單」(Participants)
-                        for (int i = 0; i < data.MaleParticipants.Count; i++) if (data.MaleParticipants[i] == oldName) data.MaleParticipants[i] = newName;
-                        for (int i = 0; i < data.FemaleParticipants.Count; i++) if (data.FemaleParticipants[i] == oldName) data.FemaleParticipants[i] = newName;
+                        for (int i = 0; i < data.MaleParticipants.Count; i++) data.MaleParticipants[i] = RenamePlayerRecord(data.MaleParticipants[i]);
+                        for (int i = 0; i < data.FemaleParticipants.Count; i++) data.FemaleParticipants[i] = RenamePlayerRecord(data.FemaleParticipants[i]);
 
                         // 3. 同步更新「候補名單」(WaitingList)
-                        for (int i = 0; i < data.MaleWaitingList.Count; i++) if (data.MaleWaitingList[i] == oldName) data.MaleWaitingList[i] = newName;
-                        for (int i = 0; i < data.FemaleWaitingList.Count; i++) if (data.FemaleWaitingList[i] == oldName) data.FemaleWaitingList[i] = newName;
+                        for (int i = 0; i < data.MaleWaitingList.Count; i++) data.MaleWaitingList[i] = RenamePlayerRecord(data.MaleWaitingList[i]);
+                        for (int i = 0; i < data.FemaleWaitingList.Count; i++) data.FemaleWaitingList[i] = RenamePlayerRecord(data.FemaleWaitingList[i]);
 
                         // 4. 同步更新「LINE 帳號綁定名單」(WhiteList)
                         var userToUpdate = data.WhiteList.Where(x => x.Value == oldName).Select(x => x.Key).ToList();
