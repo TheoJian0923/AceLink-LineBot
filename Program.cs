@@ -1365,45 +1365,62 @@ public class VolleyData
 
         // 組裝親切的中文提示格式 (例如：星期三12:00)
         string toChineseDay(DayOfWeek d) => d switch {
-            DayOfWeek.Monday => "星期一", DayOfWeek.Tuesday => "星期二", DayOfWeek.Wednesday => "星期三",
-            DayOfWeek.Thursday => "星期四", DayOfWeek.Friday => "星期五", DayOfWeek.Saturday => "星期六",
-            DayOfWeek.Sunday => "星期日", _ => ""
+            DayOfWeek.Monday => "星期一",
+            DayOfWeek.Tuesday => "星期二",
+            DayOfWeek.Wednesday => "星期三",
+            DayOfWeek.Thursday => "星期四",
+            DayOfWeek.Friday => "星期五",
+            DayOfWeek.Saturday => "星期六",
+            DayOfWeek.Sunday => "星期日",
+            _ => ""
         };
+
         formattedRange = $"{toChineseDay(startDay)}{startH:D2}:{startM:D2}";
 
-        // 取得當前台北時間進行精確比對
+        // 取得當前台北時間
         var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
         var nowTaipei = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
 
-        // 核心邏輯：先找到目前名單對齊的下一場球賽絕對日期點
-        DateTime matchDate = GetNextMatchDate();
+        // 計算本週開始時間
+        int diffToStart = ((int)nowTaipei.DayOfWeek - (int)startDay + 7) % 7;
 
-        // 1. 計算本週關閉報名的絕對時間截止點 (End Point)
+        DateTime startAbsolute = nowTaipei.Date
+            .AddDays(-diffToStart)
+            .AddHours(startH)
+            .AddMinutes(startM);
+
+        // 計算本週截止時間
         DateTime endAbsolute;
+
         if (DeadlineDay.HasValue)
         {
-            // 有設定報名期限，以報名期限為準。從比賽日往前回推到截止星期
-            int diffToDeadline = ((int)matchDate.DayOfWeek - (int)DeadlineDay.Value + 7) % 7;
-            endAbsolute = matchDate.Date.AddDays(-diffToDeadline).AddHours(DeadlineHour).AddMinutes(DeadlineMinute);
+            int diffToDeadline = ((int)nowTaipei.DayOfWeek - (int)DeadlineDay.Value + 7) % 7;
+
+            endAbsolute = nowTaipei.Date
+                .AddDays(-diffToDeadline)
+                .AddHours(DeadlineHour)
+                .AddMinutes(DeadlineMinute);
         }
         else
         {
-            // 沒設定報名期限，依您的指示：直接以「比賽開始時間」當作終點
-            endAbsolute = matchDate.Date.AddHours(MatchHour).AddMinutes(MatchMinute);
+            endAbsolute = nowTaipei.Date
+                .AddHours(MatchHour)
+                .AddMinutes(MatchMinute);
         }
 
-        // 2. 計算對應這一場球賽截止點的「開放開始時間點」 (Start Point)
-        // 開放點通常在截止點之前，我們由截止點 (endAbsolute) 所在的那一週或往前推算
-        int diffToStart = ((int)endAbsolute.DayOfWeek - (int)startDay + 7) % 7;
-        DateTime startAbsolute = endAbsolute.Date.AddDays(-diffToStart).AddHours(startH).AddMinutes(startM);
-
-        // 跨週間循環修正：如果算出來的開放點反而比截止點晚（例如同天但時間比較晚，或是回推錯週），將開放點往前移一週
-        if (startAbsolute >= endAbsolute)
+        // 若開始時間晚於截止時間，代表是跨週區間
+        if (startAbsolute > endAbsolute)
         {
             startAbsolute = startAbsolute.AddDays(-7);
         }
 
-        // 判定：當前時間必須大於等於開放點，且小於等於截止點
+        // 若現在已經超過本週截止時間，則截止時間往後推一週
+        if (nowTaipei > endAbsolute)
+        {
+            endAbsolute = endAbsolute.AddDays(7);
+        }
+
+        // 判定是否位於報名區間內
         return nowTaipei >= startAbsolute && nowTaipei <= endAbsolute;
     }
 
