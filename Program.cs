@@ -1394,16 +1394,19 @@ public class VolleyData
 
         if (DeadlineDay.HasValue)
         {
-            int diffToDeadline = ((int)nowTaipei.DayOfWeek - (int)DeadlineDay.Value + 7) % 7;
+            int diffToDeadline = ((int)DeadlineDay.Value - (int)nowTaipei.DayOfWeek + 7) % 7;
 
             endAbsolute = nowTaipei.Date
-                .AddDays(-diffToDeadline)
+                .AddDays(diffToDeadline)
                 .AddHours(DeadlineHour)
                 .AddMinutes(DeadlineMinute);
         }
         else
         {
+            int diffToMatch = ((int)MatchDay - (int)nowTaipei.DayOfWeek + 7) % 7;
+
             endAbsolute = nowTaipei.Date
+                .AddDays(diffToMatch)
                 .AddHours(MatchHour)
                 .AddMinutes(MatchMinute);
         }
