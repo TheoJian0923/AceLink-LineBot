@@ -1414,12 +1414,6 @@ public class VolleyData
             startAbsolute = startAbsolute.AddDays(-7);
         }
 
-        // 若現在已經超過本週截止時間，則截止時間往後推一週
-        if (nowTaipei > endAbsolute)
-        {
-            endAbsolute = endAbsolute.AddDays(7);
-        }
-
         // 判定是否位於報名區間內
         return nowTaipei >= startAbsolute && nowTaipei <= endAbsolute;
     }
