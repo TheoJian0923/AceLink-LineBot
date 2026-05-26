@@ -1403,7 +1403,7 @@ public class VolleyData
         }
         else
         {
-            int diffToMatch = ((int)MatchDay - (int)nowTaipei.DayOfWeek + 7) % 7;
+            int diffToMatch = ((int)MatchDay - (int)nowTaipei.DayOfWeek + 7) % 7; 
 
             endAbsolute = nowTaipei.Date
                 .AddDays(diffToMatch)
