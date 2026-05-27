@@ -1206,12 +1206,12 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 //if (!isAdmin && !isDeveloper && !data.IsWithinRegistrationPeriod(out string formattedRange))
                                 {
                                     await lineClient.ReplyMessageAsync(replyToken, $"⚠️ 本週報名尚未開放！開放報名時間為：每週{formattedRange}，感謝您。");
-                                    return;
+                                    continue;
                                 }
                                 else if (data.IsDeadlinePassed(data.DeadlineDay, data.DeadlineHour, data.DeadlineMinute))
                                 {
                                     await lineClient.ReplyMessageAsync(replyToken, "⚠️ 已超過報名截止時間。");
-                                    return;
+                                    continue;
                                 }
                                 else 
                                 { 
