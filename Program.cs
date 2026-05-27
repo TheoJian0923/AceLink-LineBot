@@ -64,14 +64,82 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
             if (string.IsNullOrEmpty(userMessage)) continue;
 
+            if (userMessage == "認識AceLink" || userMessage == "認識 AceLink")
+            {
+                var introMsg = new StringBuilder();
+                introMsg.AppendLine("🏐 認識 AceLink");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("AceLink 是一套專為「主揪 / 固定球團 / 零打團」設計的 LINE 群報名管理工具。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("如果你平常需要在群組裡手動統計：");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("✅ 誰 +1");
+                introMsg.AppendLine("✅ 誰取消");
+                introMsg.AppendLine("✅ 候補順序");
+                introMsg.AppendLine("✅ 季打名單");
+                introMsg.AppendLine("✅ 報名截止時間");
+                introMsg.AppendLine("✅ 費用與對帳");
+                introMsg.AppendLine("✅ 每週重新整理名單");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("AceLink 可以幫你把這些流程自動化，讓主揪不用每天盯著訊息重新整理。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("━━━━━━━━━━━━━━");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("AceLink 可以做到：");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 群組內直接報名");
+                introMsg.AppendLine("球友只要輸入「+1 男 / +1 女」即可完成報名。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 自動統計名單");
+                introMsg.AppendLine("系統會自動整理男、女報名名單與候補名單。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 自動候補排序");
+                introMsg.AppendLine("人數額滿後，會自動進入候補名單。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 支援取消報名");
+                introMsg.AppendLine("球友可自行取消，主揪也可以幫他人取消。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 支援季打管理");
+                introMsg.AppendLine("可設定固定季打名單，每週自動重置。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 支援報名 / 取消期限");
+                introMsg.AppendLine("避免太晚報名或臨時取消造成主揪困擾。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🔹 支援費用與對帳");
+                introMsg.AppendLine("可協助整理季打費、冷氣費、預收費用與雲端表格。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("━━━━━━━━━━━━━━");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("適合使用 AceLink 的對象：");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("🏸 羽球固定團");
+                introMsg.AppendLine("🏐 排球固定團");
+                introMsg.AppendLine("👥 零打團主揪");
+                introMsg.AppendLine("🏢 公司球隊");
+                introMsg.AppendLine("🎓 學校 / 社團球隊");
+                introMsg.AppendLine("📋 需要長期管理報名名單的運動群組");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("━━━━━━━━━━━━━━");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("月租費用：400 元 / 群組");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("目前可申請免費試用，實際放到你的 LINE 群組中測試看看。");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("如果你想試用，請點選「我要免費試用」或直接回覆：");
+                introMsg.AppendLine("");
+                introMsg.AppendLine("我要免費試用");
+
+                await lineClient.ReplyMessageAsync(replyToken, introMsg.ToString().Trim());
+                continue;
+            }
+
             // 1. [PlanA] 授權檢查邏輯
             if (!isDeveloper && !data.IsAuthorized)
             {
                 if (userMessage != "我的ID")
                 {
                     // (1) 先回覆警告訊息（Reply 是免費的）
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ \n此群組尚未授權使用。\n機器人將自動退出，如有需求請聯繫開發者。\nLine ID : 5522522333");
-                    
+                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ \n此群組尚未授權使用。\n機器人將自動退出，如有需求請聯繫開發者。\nLine ID : 5522522333");  
                     // (2) 發送最後一則通知給開發者（保留追蹤線索）
                     string alertMsg = $"🚫 【自動退群通知】\n群組 ID：\n{groupId}\n內容：{userMessage}";
                     await lineClient.PushMessageAsync(developerId, alertMsg);
