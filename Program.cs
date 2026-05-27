@@ -1341,6 +1341,9 @@ public class VolleyData
     /// <summary>
     /// 💡 核心新功能：判定當前時間是否落於目前名單日期同步的開放報名區間內
     /// </summary>
+        /// <summary>
+    /// 💡 核心新功能：判定當前時間是否落於目前名單日期同步的開放報名區間內
+    /// </summary>
     public bool IsWithinRegistrationPeriod(out string formattedRange)
     {
         formattedRange = "";
@@ -1379,48 +1382,51 @@ public class VolleyData
 
         formattedRange = $"{toChineseDay(startDay)}{startH:D2}:{startM:D2}";
 
+        int toWeeklyTimeCode(DayOfWeek d, int h, int m)
+        {
+            int dayCode = d switch {
+                DayOfWeek.Monday => 1,
+                DayOfWeek.Tuesday => 2,
+                DayOfWeek.Wednesday => 3,
+                DayOfWeek.Thursday => 4,
+                DayOfWeek.Friday => 5,
+                DayOfWeek.Saturday => 6,
+                DayOfWeek.Sunday => 7,
+                _ => 0
+            };
+
+            return dayCode * 10000 + h * 100 + m;
+        }
+
+        bool isWeeklyCodeWithinRange(int nowCode, int startCode, int endCode)
+        {
+            if (startCode == endCode)
+            {
+                return false;
+            }
+
+            if (startCode < endCode)
+            {
+                return nowCode >= startCode && nowCode < endCode;
+            }
+
+            return nowCode >= startCode || nowCode < endCode;
+        }
+
         // 取得當前台北時間
         var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
         var nowTaipei = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
 
-        // 計算本週開始時間
-        int diffToStart = ((int)nowTaipei.DayOfWeek - (int)startDay + 7) % 7;
+        DayOfWeek endDay = DeadlineDay ?? MatchDay;
+        int endH = DeadlineDay.HasValue ? DeadlineHour : MatchHour;
+        int endM = DeadlineDay.HasValue ? DeadlineMinute : MatchMinute;
 
-        DateTime startAbsolute = nowTaipei.Date
-            .AddDays(-diffToStart)
-            .AddHours(startH)
-            .AddMinutes(startM);
-
-        // 計算本週截止時間
-        DateTime endAbsolute;
-
-        if (DeadlineDay.HasValue)
-        {
-            int diffToDeadline = ((int)DeadlineDay.Value - (int)nowTaipei.DayOfWeek + 7) % 7;
-
-            endAbsolute = nowTaipei.Date
-                .AddDays(diffToDeadline)
-                .AddHours(DeadlineHour)
-                .AddMinutes(DeadlineMinute);
-        }
-        else
-        {
-            int diffToMatch = ((int)MatchDay - (int)nowTaipei.DayOfWeek + 7) % 7; 
-
-            endAbsolute = nowTaipei.Date
-                .AddDays(diffToMatch)
-                .AddHours(MatchHour)
-                .AddMinutes(MatchMinute);
-        }
-
-        // 若開始時間晚於截止時間，代表是跨週區間
-        if (startAbsolute > endAbsolute)
-        {
-            startAbsolute = startAbsolute.AddDays(-7);
-        }
+        int nowCode = toWeeklyTimeCode(nowTaipei.DayOfWeek, nowTaipei.Hour, nowTaipei.Minute);
+        int startCode = toWeeklyTimeCode(startDay, startH, startM);
+        int endCode = toWeeklyTimeCode(endDay, endH, endM);
 
         // 判定是否位於報名區間內
-        return nowTaipei >= startAbsolute && nowTaipei <= endAbsolute;
+        return isWeeklyCodeWithinRange(nowCode, startCode, endCode);
     }
 
     public DateTime GetCalibratedMatchDate(DateTime now) {
