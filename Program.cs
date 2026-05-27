@@ -64,6 +64,30 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
             if (string.IsNullOrEmpty(userMessage)) continue;
 
+            if(userMessage == "免費立即試用")
+            {
+                var tryMsg = new StringBuilder();
+                introMsg.AppendLine("🎉 AceLink 免費試用申請");
+                introMsg.AppendLine("太好了！為了讓您有更好的試用體驗，請您留下聯絡方式，負責人將在一天內與您聯繫並做更深入的介紹與設定。 ");
+                introMsg.AppendLine("請先回覆以下基本資料，我會再私訊您確認詳細設定： ");
+                introMsg.AppendLine("1️⃣ 聯絡人稱呼：");
+                introMsg.AppendLine("2️⃣ 聯絡方式：LINE ID or 手機  ");
+                introMsg.AppendLine("3️⃣ 球館名稱：");
+                introMsg.AppendLine("4️⃣ 得知管道：");
+                introMsg.AppendLine("5️⃣ 目前管理方式：手動統計 / Google 表單 / Excel / 其他");
+                introMsg.AppendLine("━━━━━━━━━━━━━━");
+                introMsg.AppendLine("你可以直接複製以下格式回覆：");
+                introMsg.AppendLine("聯絡人稱呼：");
+                introMsg.AppendLine("聯絡方式：");
+                introMsg.AppendLine("球館名稱：");
+                introMsg.AppendLine("得知管道：");
+                introMsg.AppendLine("目前管理方式：");
+                introMsg.AppendLine("");
+
+                await lineClient.ReplyMessageAsync(replyToken, introMsg.ToString().Trim());
+                continue;
+            }
+
             if (userMessage == "認識AceLink" || userMessage == "認識 AceLink")
             {
                 var introMsg = new StringBuilder();
