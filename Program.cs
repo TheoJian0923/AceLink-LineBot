@@ -495,8 +495,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     sb.AppendLine($"● 比賽時間：週{data.GetDayString(data.MatchDay)} {data.MatchHour:D2}:{data.MatchMinute:D2}");
                     sb.AppendLine($"● 季打費用：{data.QuarterlyFee} 元");
                     sb.AppendLine($"● 冷氣費用：{data.AcFee} 元");
+                    sb.AppendLine($"● 正取人數：男 {data.MaxMale} 位 / 女 {data.MaxFemale} 位 / 共 {data.MaxMale + data.MaxFemale} 位");
                     sb.AppendLine($"● 自動重置：週{data.GetDayString(data.ResetDay)} {data.ResetHour:D2}:{data.ResetMinute:D2}");
-                    sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? "開啟 (9男9女優先)" : "關閉 (先報先贏)")}");
+                    sb.AppendLine($"● 男女平衡：{(data.IsGenderBalanceEnabled ? $"開啟 ({data.MaxMale}男{data.MaxFemale}女優先)" : "關閉 (先報先贏)")}");
                     sb.AppendLine($"● 最後重置日期：{(string.IsNullOrEmpty(data.LastResetDate) ? "無紀錄" : data.LastResetDate)}");
                     
                     // 💡 解析並格式化開始報名時間，以便在報名期限上方呈現
@@ -673,7 +674,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 "重置", "確認重置", "系統初始化", "管理員指令", "設定季打費用", "設定冷氣費用", 
                 "設定季打時間", "設定重置時間", "設定報名期限", "設定取消期限", "移除報名期限", 
                 "移除取消期限", "增加季打", "更新季打成員", "移除季打", "修改季打成員名稱", 
-                "查詢季打", "增加報名", "取消報名","開啟男女平衡","關閉男女平衡","設定開始報名時間","移除開始報名時間" 
+                "查詢季打", "增加報名", "取消報名","開啟男女平衡","關閉男女平衡","設定開始報名時間","移除開始報名時間","更改正取人數" 
             };
             bool isAdminCmd = adminCommands.Contains(cmd) || 
                               Regex.IsMatch(userMessage, @"^(\d{8})\s*(開冷氣|關冷氣|無開場|有開場)$") ||
@@ -812,7 +813,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                                 sb.AppendLine($"💰 費用：季打 {data.QuarterlyFee} / 冷氣 {data.AcFee}");
                                 sb.AppendLine($"💵 預收：{data.PrepaidFee} 元");
                                 sb.AppendLine($"❄️ 冷氣：{(data.IsAcAlwaysOn ? "保持開啟" : "保持關閉")}");
-                                sb.AppendLine($"⚖️ 平衡：{(data.IsGenderBalanceEnabled ? "保持開啟 (男9女9)" : "保持關閉 (先報先贏)")}");
+                                sb.AppendLine($"⚖️ 平衡：{(data.IsGenderBalanceEnabled ? $"保持開啟 (男{data.MaxMale}女{data.MaxFemale})" : "保持關閉 (先報先贏)")}");
                                 sb.AppendLine($"👥 季打人數：男 {data.MaleQuarterly.Count} / 女 {data.FemaleQuarterly.Count}");
                                 sb.AppendLine($"🔄 自動重置：週({data.ResetDay}) {data.ResetHour:D2}:{data.ResetMinute:D2}");
                                 sb.AppendLine($"🚫 取消截止：週({data.CancelDeadlineDay}) {data.CancelDeadlineHour:D2}:{data.CancelDeadlineMinute:D2}");
@@ -903,6 +904,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     ● 設定[報名/取消]期限 ↵ 
       星期 ↵ 時間
     ● 移除[報名/取消]期限
+    ● 更改正取人數 6男6女
     ● [開啟/關閉]男女平衡
 
     【 費用與日期控制 】
@@ -960,6 +962,40 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 {
                     string valStr = Regex.Match(userMessage, @"\d+").Value;
                     if (int.TryParse(valStr, out int fee)) { data.AcFee = fee; manager.Save(groupId, data); await lineClient.ReplyMessageAsync(replyToken, $"✅ 冷氣費用已更新：{fee}元"); }
+                    continue;
+                }
+
+                if (cmd.StartsWith("更改正取人數"))
+                {
+                    var limitMatch = Regex.Match(userMessage, @"^更改正取人數\s*(\d+)\s*男\s*(\d+)\s*女$");
+
+                    if (!limitMatch.Success)
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤：\n更改正取人數 6男6女");
+                        continue;
+                    }
+
+                    int newMaxMale = int.Parse(limitMatch.Groups[1].Value);
+                    int newMaxFemale = int.Parse(limitMatch.Groups[2].Value);
+
+                    if (newMaxMale + newMaxFemale <= 0)
+                    {
+                        await lineClient.ReplyMessageAsync(replyToken, "⚠️ 正取總人數不可為 0，請重新設定。\n範例：更改正取人數 6男6女");
+                        continue;
+                    }
+
+                    data.MaxMale = newMaxMale;
+                    data.MaxFemale = newMaxFemale;
+                    data.Rebalance();
+                    manager.Save(groupId, data);
+                    _ = data.SyncToSheets(lineClient, groupId);
+
+                    await lineClient.ReplyMessageAsync(
+                        replyToken,
+                        data.GetFormattedList(
+                            $"✅ 正取人數已更新\n男生正取：{data.MaxMale} 位\n女生正取：{data.MaxFemale} 位\n總正取：{data.MaxMale + data.MaxFemale} 位"
+                        )
+                    );
                     continue;
                 }
 
@@ -1703,6 +1739,10 @@ public class VolleyData
         long basePastTs = 20260101000000; 
         int seq = 0;
 
+        int maleLimit = Math.Max(0, MaxMale);
+        int femaleLimit = Math.Max(0, MaxFemale);
+        int totalLimit = maleLimit + femaleLimit;
+
         void ExtractToList(List<string> srcList, string defaultGender) {
             foreach (var item in srcList) {
                 if (string.IsNullOrEmpty(item)) continue;
@@ -1739,6 +1779,18 @@ public class VolleyData
 
         var sortedPool = allPlayers.OrderBy(x => x.Timestamp).ToList();
 
+        if (totalLimit <= 0)
+        {
+            foreach (var p in sortedPool)
+            {
+                string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
+                if (p.Gender == "男") MaleWaitingList.Add(saveStr);
+                else FemaleWaitingList.Add(saveStr);
+            }
+
+            return;
+        }
+
         if (IsGenderBalanceEnabled) 
         {
             // 男女平衡核心演算法 (含外卡遞補機制)
@@ -1747,12 +1799,12 @@ public class VolleyData
 
             int mIdx = 0; int fIdx = 0;
 
-            // 1. 先滿足各自的基本 9 位配額
-            while (mIdx < malePool.Count && MaleParticipants.Count < 9) {
+            // 1. 先滿足各自的基本正取配額
+            while (mIdx < malePool.Count && MaleParticipants.Count < maleLimit) {
                 var p = malePool[mIdx++];
                 MaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp}");
             }
-            while (fIdx < femalePool.Count && FemaleParticipants.Count < 9) {
+            while (fIdx < femalePool.Count && FemaleParticipants.Count < femaleLimit) {
                 var p = femalePool[fIdx++];
                 FemaleParticipants.Add($"{p.Name}|{p.Gender}|{p.Timestamp}");
             }
@@ -1764,13 +1816,13 @@ public class VolleyData
 
             foreach (var p in remainingPool) {
                 string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
-                if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
-                    // 💡 終極修正：即便滿足總數小於 18，若自身性別正選已滿 9，必須實體分流塞入對方性別的格子，鎖死單邊數量！
+                if (MaleParticipants.Count + FemaleParticipants.Count < totalLimit) {
+                    // 💡 終極修正：即便滿足總數小於正取總額，若自身性別正選已滿，必須實體分流塞入對方性別的格子，鎖死單邊數量！
                     if (p.Gender == "男") {
-                        if (MaleParticipants.Count < 9) MaleParticipants.Add(saveStr);
+                        if (MaleParticipants.Count < maleLimit) MaleParticipants.Add(saveStr);
                         else FemaleParticipants.Add(saveStr);
                     } else {
-                        if (FemaleParticipants.Count < 9) FemaleParticipants.Add(saveStr);
+                        if (FemaleParticipants.Count < femaleLimit) FemaleParticipants.Add(saveStr);
                         else MaleParticipants.Add(saveStr);
                     }
                 } else {
@@ -1779,16 +1831,16 @@ public class VolleyData
                 }
             }
         } else {
-            // 先報先贏核心演算法：總正選上限 18，滿額丟入綜合候補
+            // 先報先贏核心演算法：總正選上限依照 MaxMale + MaxFemale，滿額丟入綜合候補
             foreach (var p in sortedPool) {
                 string saveStr = $"{p.Name}|{p.Gender}|{p.Timestamp}";
                 
-                if (MaleParticipants.Count + FemaleParticipants.Count < 18) {
+                if (MaleParticipants.Count + FemaleParticipants.Count < totalLimit) {
                     if (p.Gender == "男") {
-                        if (MaleParticipants.Count < 9) MaleParticipants.Add(saveStr);
+                        if (MaleParticipants.Count < maleLimit) MaleParticipants.Add(saveStr);
                         else FemaleParticipants.Add(saveStr);
                     } else {
-                        if (FemaleParticipants.Count < 9) FemaleParticipants.Add(saveStr);
+                        if (FemaleParticipants.Count < femaleLimit) FemaleParticipants.Add(saveStr);
                         else MaleParticipants.Add(saveStr);
                     }
                 } else {
