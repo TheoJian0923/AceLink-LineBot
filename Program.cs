@@ -101,7 +101,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             if (userMessage == "認識AceLink" || userMessage == "認識 AceLink")
             {
                 var introMsg = new StringBuilder();
-                introMsg.AppendLine("🏐 認識 AceLink");
+                introMsg.AppendLine("🎯 認識 AceLink");
                 introMsg.AppendLine("");
                 introMsg.AppendLine("AceLink 是一套專為「主揪 / 固定球團 / 零打團」設計的 LINE 群報名管理工具。");
                 introMsg.AppendLine("");
@@ -572,7 +572,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         targetData.IsAuthorized = true;
                         targetData.GroupName = gNickName;
                         manager.Save(targetGroup, targetData);
-                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 授權群組成功：\n🏐 名稱：{gNickName}\n🆔 ID：{targetGroup}");
+                        await lineClient.ReplyMessageAsync(replyToken, $"✅ 授權群組成功：\n⚡ 名稱：{gNickName}\n🆔 ID：{targetGroup}");
                     }
                     else { await lineClient.ReplyMessageAsync(replyToken, "⚠️ 格式錯誤：授權群組 [暱稱] 群組ID"); }
                     continue;
@@ -882,7 +882,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
                 if (cmd == "管理員指令")
                 {
-                    string helpMsg = @"┏━🏐 AceLink 管理員中心━┓
+                    string helpMsg = @"┏━📋 AceLink 管理員中心━┓
     【 核心配置 】（ ↵ 表示需換行）
     ● 系統初始化 ➜ 
       啟動引導式流程
@@ -1255,7 +1255,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     data.IsGenderBalanceEnabled = true;
                     data.Rebalance(); 
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("✅ 已切換男女平衡狀態\n🏐 目前報名狀態"));
+                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("✅ 已切換男女平衡狀態\n📋 目前報名狀態"));
                     continue;
                 }
                 if (cmd == "關閉男女平衡")
@@ -1263,7 +1263,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     data.IsGenderBalanceEnabled = false;
                     data.Rebalance(); 
                     manager.Save(groupId, data);
-                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("✅ 已切換男女平衡狀態\n🏐 目前報名狀態"));
+                    await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("✅ 已切換男女平衡狀態\n📋 目前報名狀態"));
                     continue;
                 }
             }
@@ -1325,7 +1325,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                     }
                     else
                     {
-                        if (userMessage == "查詢") { await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("🏐 目前報名狀態")); }
+                        if (userMessage == "查詢") { await lineClient.ReplyMessageAsync(replyToken, data.GetFormattedList("📋 目前報名狀態")); }
                         else
                         {
                             string action = regMatch.Groups[1].Value;
@@ -1399,7 +1399,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
 
             if (cmd == "幫助" || cmd == "指令") 
             { 
-                string userHelp = @"┏━━ 🏐 AceLink 指令 ━━┓
+                string userHelp = @"┏━━ 📋 AceLink 指令 ━━┓
     【 報名操作 】
     個人報名：
     ● 報名 ➜ +1~18 男/女
@@ -2017,7 +2017,7 @@ public class VolleyData
 
         // 4. 開始組合字串
         var sb = new StringBuilder();
-        sb.AppendLine($"🏐 {targetDate:MM/dd} 臨打收款清單");
+        sb.AppendLine($"📋 {targetDate:MM/dd} 臨打收款清單");
         sb.AppendLine("------------------");
 
         // 5. 抓取名單並過濾出「臨打」人員
@@ -2102,7 +2102,7 @@ public class ResetTaskService : BackgroundService {
                                 
                                 /*
                                 // 可選：重置成功後向群組發送公告
-                                string listContent = data.GetFormattedList("🏐 本週預設名單");
+                                string listContent = data.GetFormattedList("📋 本週預設名單");
                                 string resetMsg = $"🧹 【AceLink 自動重置完成】\n本週比賽報名已開啟！\n\n{listContent}";
                                 await _lineClient.PushMessageAsync(gId, resetMsg);
                                 */
