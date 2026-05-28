@@ -159,9 +159,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 introMsg.AppendLine("");
                 introMsg.AppendLine("目前可申請免費試用，實際放到你的 LINE 群組中測試看看。");
                 introMsg.AppendLine("");
-                introMsg.AppendLine("如果你想試用，請點選「我要免費試用」或直接回覆：");
+                introMsg.AppendLine("如果你想試用，請點選「免費立即試用」或直接回覆：");
                 introMsg.AppendLine("");
-                introMsg.AppendLine("我要免費試用");
+                introMsg.AppendLine("免費立即試用");
 
                 await lineClient.ReplyMessageAsync(replyToken, introMsg.ToString().Trim());
                 continue;
