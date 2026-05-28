@@ -904,7 +904,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
     ● 設定[報名/取消]期限 ↵ 
       星期 ↵ 時間
     ● 移除[報名/取消]期限
-    ● 更改正取人數 6男6女
+    ● 更改正取人數 ↵ ?男?女
     ● [開啟/關閉]男女平衡
 
     【 費用與日期控制 】
