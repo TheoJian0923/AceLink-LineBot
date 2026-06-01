@@ -173,7 +173,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 if (userMessage != "我的ID")
                 {
                     // (1) 先回覆警告訊息（Reply 是免費的）
-                    await lineClient.ReplyMessageAsync(replyToken, "⚠️ \n此群組尚未授權使用。\n機器人將自動退出，如有需求請聯繫開發者。\nLine ID : 5522522333");  
+                    //await lineClient.ReplyMessageAsync(replyToken, "⚠️ \n此群組尚未授權使用。\n機器人將自動退出，如有需求請聯繫開發者。\nLine ID : 5522522333");  
                     // (2) 發送最後一則通知給開發者（保留追蹤線索）
                     string alertMsg = $"🚫 【自動退群通知】\n群組 ID：\n{groupId}\n內容：{userMessage}";
                     await lineClient.PushMessageAsync(developerId, alertMsg);
