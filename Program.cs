@@ -170,43 +170,55 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
             // 1. [PlanA] 授權檢查邏輯
             if (!isDeveloper && !data.IsAuthorized)
             {
+                string sourceType = ev.source?.type ?? "";
+                bool isGroupLikeSource = sourceType == "group" || sourceType == "room";
+                bool isUserSource = sourceType == "user";
+
                 if (userMessage != "我的ID")
                 {
-                    // (1) 先回覆警告訊息（Reply 是免費的）
-                    //await lineClient.ReplyMessageAsync(replyToken, "⚠️ \n此群組尚未授權使用。\n機器人將自動退出，如有需求請聯繫開發者。\nLine ID : 5522522333");  
-                    // (2) 發送最後一則通知給開發者（保留追蹤線索）
-                    string alertMsg = $"🚫 【自動退群通知】\n群組 ID：\n{groupId}\n內容：{userMessage}";
-                    await lineClient.PushMessageAsync(developerId, alertMsg);
-
-                    // (3) 執行自動退出邏輯（使用 HttpClient 直接呼叫 API，避免 SDK 編譯錯誤）
-                    try 
+                    if (isGroupLikeSource)
                     {
-                        string sourceType = ev.source?.type ?? "";
-                        if (sourceType == "group" || sourceType == "room")
-                        {
-                            using (var httpClient = new HttpClient())
-                            {
-                                // 設定認證標頭
-                                httpClient.DefaultRequestHeaders.Authorization = 
-                                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-                                
-                                // 判斷群組或聊天室路徑
-                                string endpoint = sourceType == "group" 
-                                    ? $"https://api.line.me/v2/bot/group/{groupId}/leave"
-                                    : $"https://api.line.me/v2/bot/room/{groupId}/leave";
+                        // (1) 先回覆警告訊息（Reply 是免費的）
+                        await lineClient.ReplyMessageAsync(replyToken, "⚠️ \n此群組尚未授權使用。\n機器人將自動退出，如有需求請聯繫開發者。\nLine ID : 5522522333");  
+                        // (2) 發送最後一則通知給開發者（保留追蹤線索）
+                        string alertMsg = $"🚫 【自動退群通知】\n群組 ID：\n{groupId}\n內容：{userMessage}";
+                        await lineClient.PushMessageAsync(developerId, alertMsg);
 
-                                // 發送 POST 請求
-                                await httpClient.PostAsync(endpoint, null);
+                        // (3) 執行自動退出邏輯（使用 HttpClient 直接呼叫 API，避免 SDK 編譯錯誤）
+                        try 
+                        {
+                            if (sourceType == "group" || sourceType == "room")
+                            {
+                                using (var httpClient = new HttpClient())
+                                {
+                                    // 設定認證標頭
+                                    httpClient.DefaultRequestHeaders.Authorization = 
+                                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                                    
+                                    // 判斷群組或聊天室路徑
+                                    string endpoint = sourceType == "group" 
+                                        ? $"https://api.line.me/v2/bot/group/{groupId}/leave"
+                                        : $"https://api.line.me/v2/bot/room/{groupId}/leave";
+
+                                    // 發送 POST 請求
+                                    await httpClient.PostAsync(endpoint, null);
+                                }
                             }
                         }
+                        catch (Exception ex) 
+                        {
+                            // 僅記錄錯誤，不讓退群失敗導致整個 Webhook 當掉
+                            Console.WriteLine($"Leave Error: {ex.Message}");
+                        }
+                        
+                        continue; // 終止後續邏輯執行
                     }
-                    catch (Exception ex) 
+
+                    if (isUserSource)
                     {
-                        // 僅記錄錯誤，不讓退群失敗導致整個 Webhook 當掉
-                        Console.WriteLine($"Leave Error: {ex.Message}");
+                        await lineClient.ReplyMessageAsync(replyToken, "已收到您的訊息。\n\n負責人將會在一天內回覆您");
+                        continue; // 個人聊天室不進入未授權群組退出邏輯
                     }
-                    
-                    continue; // 終止後續邏輯執行
                 }
             }
 
