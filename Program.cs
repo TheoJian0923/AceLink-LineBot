@@ -1734,6 +1734,20 @@ public class VolleyData
         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
         
         for (int i = 0; i < count; i++) {
+            string timestamp = $"{now:yyyyMMddHHmmssfff}{i:D2}";
+            string item = $"{name}|{gender}|{timestamp}";
+            
+            if (gender == "男") MaleParticipants.Add(item);
+            else FemaleParticipants.Add(item);
+        }
+        Rebalance();
+    }
+    /*
+    public void AddPlayer(string name, int count, string gender) {
+        var taipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, taipeiZone);
+        
+        for (int i = 0; i < count; i++) {
             string timestamp = now.AddSeconds(i).ToString("yyyyMMddHHmmss");
             string item = $"{name}|{gender}|{timestamp}";
             
@@ -1742,6 +1756,7 @@ public class VolleyData
         }
         Rebalance();
     }
+    */
 
     public void Rebalance() 
     {
