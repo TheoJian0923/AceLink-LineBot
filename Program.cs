@@ -896,9 +896,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                 {
                     string helpMsg = string.Join("\n", new[]
                     {
-                        "┏━━━━━━━━━━━━━━━━━━┓",
+                        "┏━━━━━━━━━━━┓",
                         "     📋 AceLink 管理員中心",
-                        "┗━━━━━━━━━━━━━━━━━━┛",
+                        "┗━━━━━━━━━━━┛",
                         "",
                         "說明：",
                         "↵ 代表需要換行輸入",
@@ -954,7 +954,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         "開啟男女平衡",
                         "關閉男女平衡",
                         "",
-                        "━━━ 💰 費用與日期控制 ━━━",
+                        "━ 💰 費用與日期控制 ━",
                         "",
                         "▶ 設定費用",
                         "設定[季打/冷氣]費用 [金額]",
@@ -1001,9 +1001,9 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         "-1~18 性別 姓名",
                         "例：-1 女 陳小美",
                         "",
-                        "┏━━━━━━━━━━━━━━━━━━┓",
+                        "┏━━━━━━━━━━━┓",
                         "   請依照指令格式輸入，避免多餘空格",
-                        "┗━━━━━━━━━━━━━━━━━━┛"
+                        "┗━━━━━━━━━━━┛"
                     });
 
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
