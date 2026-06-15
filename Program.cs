@@ -999,11 +999,7 @@ app.MapPost("/api/linebot", async (HttpContext context, ILineMessagingClient lin
                         "",
                         "▶ 手動取消報名",
                         "-1~18 性別 姓名",
-                        "例：-1 女 陳小美",
-                        "",
-                        "┏━━━━━━━━━━━┓",
-                        "   請依照指令格式輸入，避免多餘空格",
-                        "┗━━━━━━━━━━━┛"
+                        "例：-1 女 陳小美"
                     });
 
                     await lineClient.ReplyMessageAsync(replyToken, helpMsg);
